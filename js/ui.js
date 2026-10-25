@@ -42,7 +42,7 @@ export class UI {
         const c = CAST[who] || CAST.villager, nm = shown || (c && c.name) || who;
         let at = slot.left === who ? 'left' : slot.right === who ? 'right' : null;
         if (!at) { at = forced || (!slot.left ? 'left' : !slot.right ? 'right' : side === 'left' ? 'right' : 'left'); slot[at] = who; }
-        side = at; const holder = at === 'left' ? L : Rr, cv = portrait(c.p, ex, 320); holder.innerHTML = ''; holder.appendChild(cv); if (at === 'right') cv.style.transform = 'scaleX(-1)';
+        side = at; const holder = at === 'left' ? L : Rr, cv = portrait(c.p, ex, 320, at === 'right'); holder.innerHTML = ''; holder.appendChild(cv);
         L.classList.toggle('dim', at !== 'left'); Rr.classList.toggle('dim', at !== 'right'); holder.classList.remove('pop'); void holder.offsetWidth; holder.classList.add('pop');
         name.hidden = false; name.textContent = nm; name.className = 'tname ' + at; text.className = 'ttext';
       }

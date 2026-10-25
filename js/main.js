@@ -325,5 +325,5 @@ async function ending() {
 // play time
 setInterval(() => { if (S) S.time += 1; }, 1000);
 (async () => { try { cloud = await import('/save.js'); await cloud.pull(GAME, KEY); } catch (e) { cloud = null; } })();
-window.AO = { get S() { return S; }, get B() { return B; }, CHAPTERS, ui, view, save, load, play, joinArmy, chapter };
+window.AO = { get S() { return S; }, get B() { return B; }, CHAPTERS, ui, view, fx, save, load, play, joinArmy, chapter };
 title();

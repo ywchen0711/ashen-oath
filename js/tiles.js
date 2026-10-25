@@ -20,13 +20,13 @@ export function paintMap(F, fog) {
 const isWater = (ch) => 'wr~'.includes(ch), isWall = (ch) => '#WDG'.includes(ch), isRoad = (ch) => 'Rbl'.includes(ch);
 export function paintTile(g, F, x, y) {
   const ch = F.tile(x, y), ox = x * 16, oy = y * 16, P = (px, py, w, h, col) => { g.fillStyle = col; g.fillRect(ox + px, oy + py, w, h); }, n = (k) => hash(x, y, k);
-  const grass = () => { P(0, 0, 16, 16, PAL.grass[0]); for (let k = 0; k < 10; k++) P(Math.floor(n(k) * 15), Math.floor(n(k + 20) * 15), 1, 1, PAL.grass[k % 3 + 1]); if (n(99) < 0.3) { P(Math.floor(n(41) * 12) + 2, Math.floor(n(42) * 12) + 2, 1, 1, ['#f0e060', '#f0a0c0', '#ffffff'][Math.floor(n(43) * 3)]); } };
+  const grass = () => { P(0, 0, 16, 16, PAL.grass[0]); for (let k = 0; k < 10; k++) P(Math.floor(n(k) * 15), Math.floor(n(k + 20) * 15), 1, 1, PAL.grass[k % 3 + 1]); for (let k = 0; k < 3; k++) { const tx = Math.floor(n(k + 30) * 13) + 1, ty = Math.floor(n(k + 33) * 12) + 2; P(tx, ty, 1, 2, '#5a8a34'); P(tx + 2, ty, 1, 2, '#5a8a34'); P(tx + 1, ty + 1, 1, 2, '#4e7e2e'); P(tx + 1, ty - 1, 1, 1, PAL.grass[3]); } if (n(97) < 0.5) P(Math.floor(n(44) * 12) + 2, Math.floor(n(45) * 12) + 2, 2, 1, '#a8dc7a'); if (n(99) < 0.3) { P(Math.floor(n(41) * 12) + 2, Math.floor(n(42) * 12) + 2, 1, 1, ['#f0e060', '#f0a0c0', '#ffffff'][Math.floor(n(43) * 3)]); } };
   const snowG = () => { P(0, 0, 16, 16, PAL.snow[0]); for (let k = 0; k < 8; k++) P(Math.floor(n(k) * 15), Math.floor(n(k + 20) * 15), 2, 1, PAL.snow[1 + k % 2]); };
   const floorG = (pal = PAL.floor) => { P(0, 0, 16, 16, pal[0]); P(0, 0, 16, 1, pal[1]); P(0, 0, 1, 16, pal[1]); P(8, 0, 1, 8, pal[1]); P(0, 8, 16, 1, pal[1]); P(4, 8, 1, 8, pal[1]); for (let k = 0; k < 4; k++) P(Math.floor(n(k) * 14) + 1, Math.floor(n(k + 9) * 14) + 1, 1, 1, pal[2]); };
   const base = () => { const near = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([a, b]) => F.tile(x + a, y + b)); if (near.filter((t) => 'Szi'.includes(t)).length >= 2 || ch === 'S' || ch === 'z') snowG(); else if (near.filter((t) => 'lpqCTeOQ'.includes(t)).length >= 2) floorG(); else if (near.filter((t) => t === 's').length >= 2) sandG(); else grass(); };
   const sandG = () => { P(0, 0, 16, 16, PAL.sand[0]); for (let k = 0; k < 6; k++) P(Math.floor(n(k) * 14), Math.floor(n(k + 7) * 15), 3, 1, PAL.sand[1]); P(Math.floor(n(50) * 10), Math.floor(n(51) * 12), 4, 1, PAL.sand[2]); };
-  const tree = (cx, cy, s = 1, pal = PAL.tree) => { P(cx - 1, cy + 2, 2, 3, PAL.trunk); g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(ox + cx - 4, oy + cy + 4, 8, 2); P(cx - 4, cy - 3, 8, 6, pal[1]); P(cx - 3, cy - 5, 6, 2, pal[1]); P(cx - 3, cy + 3, 6, 1, pal[0]); P(cx - 4, cy + 1, 8, 2, pal[0]); P(cx - 2, cy - 4, 3, 2, pal[2]); P(cx - 3, cy - 2, 1, 1, pal[2]); P(cx + 3, cy - 2, 1, 3, pal[0]); P(cx - 5, cy - 1, 1, 3, pal[3]); P(cx + 4, cy - 1, 1, 2, pal[3]); };
-  const mountain = (pal) => { for (let r = 0; r < 12; r++) { const w = Math.floor(r * 0.75) + 1; P(8 - w, 3 + r, w, 1, pal[0]); P(8, 3 + r, w, 1, pal[1]); } P(7, 3, 2, 1, pal[2]); P(6, 4, 2, 1, pal[2]); P(5, 6, 1, 2, pal[2]); P(10, 8, 2, 1, pal[3] || pal[1]); P(3, 13, 2, 1, pal[3] || pal[1]); };
+  const tree = (cx, cy, s = 1, pal = PAL.tree) => { g.fillStyle = 'rgba(20,40,10,0.32)'; g.beginPath(); g.ellipse(ox + cx + 1, oy + cy + 5, 5.5, 2, 0, 0, 7); g.fill(); P(cx - 1, cy + 2, 2, 3, PAL.trunk); P(cx, cy + 2, 1, 3, '#4a3018'); P(cx - 5, cy - 2, 1, 4, pal[3]); P(cx + 4, cy - 2, 1, 4, pal[3]); P(cx - 4, cy - 4, 1, 2, pal[3]); P(cx + 3, cy - 4, 1, 2, pal[3]); P(cx - 3, cy - 6, 6, 1, pal[3]); P(cx - 4, cy + 3, 8, 1, pal[3]); P(cx - 4, cy - 3, 8, 6, pal[1]); P(cx - 3, cy - 5, 6, 2, pal[1]); P(cx - 3, cy + 3, 6, 1, pal[0]); P(cx - 4, cy + 1, 8, 2, pal[0]); P(cx - 2, cy - 4, 3, 2, pal[2]); P(cx - 3, cy - 2, 1, 1, pal[2]); P(cx + 3, cy - 2, 1, 3, pal[0]); P(cx - 2, cy - 5, 2, 1, pal[2]); P(cx - 3, cy - 3, 1, 1, '#8ad070'); P(cx - 1, cy - 4, 1, 1, '#a8e488'); P(cx + 1, cy + 1, 2, 1, pal[3]); P(cx + 2, cy - 1, 1, 1, pal[0]); };
+  const mountain = (pal) => { g.fillStyle = 'rgba(30,20,10,0.25)'; g.beginPath(); g.ellipse(ox + 9, oy + 14.5, 8, 2, 0, 0, 7); g.fill(); for (let r = 0; r < 12; r++) { const w = Math.floor(r * 0.75) + 1; P(8 - w, 3 + r, w, 1, pal[0]); P(8, 3 + r, w, 1, pal[1]); } P(7, 3, 2, 1, pal[2]); P(6, 4, 2, 1, pal[2]); P(5, 6, 1, 2, pal[2]); P(10, 8, 2, 1, pal[3] || pal[1]); P(3, 13, 2, 1, pal[3] || pal[1]); P(9, 5, 1, 3, pal[3] || pal[1]); P(11, 11, 2, 1, pal[3] || pal[1]); P(4, 10, 1, 1, pal[2]); P(6, 12, 2, 1, pal[2]); P(13, 14, 2, 1, pal[1]); P(1, 14, 2, 1, pal[0]); };
   switch (ch) {
     case '.': case ',': grass(); if (ch === ',') for (let k = 0; k < 5; k++) P(Math.floor(n(k + 60) * 14), Math.floor(n(k + 70) * 13) + 2, 1, 2, PAL.grass[2]); break;
     case 'R': base(); paintPath(g, F, x, y, PAL.road, isRoad); break;
@@ -75,14 +75,17 @@ export function paintTile(g, F, x, y) {
 }
 function paintPath(g, F, x, y, pal, conn) {
   const ox = x * 16, oy = y * 16, P = (px, py, w, h, c) => { g.fillStyle = c; g.fillRect(ox + px, oy + py, w, h); };
-  P(4, 4, 8, 8, pal[0]); const c = (a, b) => conn(F.tile(x + a, y + b)) || 'vFGTkaHo'.includes(F.tile(x + a, y + b));
-  if (c(0, -1)) P(4, 0, 8, 4, pal[0]); if (c(0, 1)) P(4, 12, 8, 4, pal[0]); if (c(-1, 0)) P(0, 4, 4, 8, pal[0]); if (c(1, 0)) P(12, 4, 4, 8, pal[0]);
-  for (let k = 0; k < 5; k++) P(4 + Math.floor(hash(x, y, k) * 8), 4 + Math.floor(hash(x, y, k + 5) * 8), 1, 1, pal[1]);
+  const c = (a, b) => conn(F.tile(x + a, y + b)) || 'vFGTkaHo'.includes(F.tile(x + a, y + b));
+  const m = new Uint8Array(256), fill = (x0, y0, w, h) => { for (let yy = y0; yy < y0 + h; yy++) for (let xx = x0; xx < x0 + w; xx++) m[yy * 16 + xx] = 1; };
+  fill(4, 4, 8, 8); if (c(0, -1)) fill(4, 0, 8, 4); if (c(0, 1)) fill(4, 12, 8, 4); if (c(-1, 0)) fill(0, 4, 4, 8); if (c(1, 0)) fill(12, 4, 4, 8);
+  const edge = '#a88a58', shade2 = '#b89a68', grassC = '#6aa040';
+  for (let yy = 0; yy < 16; yy++) for (let xx = 0; xx < 16; xx++) { if (!m[yy * 16 + xx]) continue; const out = (a, b) => { const X = xx + a, Y = yy + b; return X >= 0 && Y >= 0 && X < 16 && Y < 16 && !m[Y * 16 + X]; }; const e = out(-1, 0) || out(1, 0) || out(0, -1) || out(0, 1); const below = out(0, -1); P(xx, yy, 1, 1, e ? (below ? shade2 : edge) : pal[0]); if (e && hash(x * 16 + xx, y * 16 + yy, 3) < 0.25) P(xx, yy, 1, 1, grassC); }
+  for (let k = 0; k < 6; k++) { const px = Math.floor(hash(x, y, k) * 14) + 1, py = Math.floor(hash(x, y, k + 5) * 14) + 1; if (m[py * 16 + px] && m[py * 16 + px + 1]) { P(px, py, 2, 1, pal[1]); P(px, py - 1, 1, 1, pal[2]); } }
 }
 function paintWater(g, F, x, y, ch) {
   const ox = x * 16, oy = y * 16, P = (px, py, w, h, c) => { g.fillStyle = c; g.fillRect(ox + px, oy + py, w, h); };
   const pal = ch === 'w' ? PAL.deep : PAL.water; P(0, 0, 16, 16, ch === '~' ? '#5a98d8' : pal[0]);
-  for (let k = 0; k < 4; k++) { const wx = Math.floor(hash(x, y, k) * 12), wy = Math.floor(hash(x, y, k + 4) * 14); P(wx, wy, 3, 1, pal[1]); P(wx + 1, wy - 1, 2, 1, PAL.water[3]); }
+  for (let k = 0; k < 4; k++) { const wx = Math.floor(hash(x, y, k) * 12), wy = Math.floor(hash(x, y, k + 4) * 14); P(wx, wy, 3, 1, pal[1]); P(wx + 1, wy - 1, 2, 1, PAL.water[3]); } for (let k = 0; k < 3; k++) P(Math.floor(hash(x, y, k + 11) * 15), Math.floor(hash(x, y, k + 14) * 15), 2, 1, pal[2]); if (hash(x, y, 19) < 0.35) P(Math.floor(hash(x, y, 20) * 13) + 1, Math.floor(hash(x, y, 21) * 13) + 1, 1, 1, '#ffffff');
   // shores where the land is
   const land = (a, b) => { const t = F.tile(x + a, y + b); return !(isWater(t) || t === 'b' || t === 'L' || t === 'P'); };
   const sand = '#e8d098', foam = '#e8f4fc';
@@ -117,7 +120,7 @@ const MOUNT = { horse: ['#8a5a32', '#6a4222', '#a87442'], horseW: ['#e8e4dc', '#
 // draw one frame. face: 'down' | 'up' | 'side' (facing right; flip for left). frame 0..3
 export function sprite(lookId, team, hair, frame = 0, face = 'down', gray = false) {
   const L = LOOKS[lookId] || LOOKS.sword, T = TEAM[gray ? 'gray' : team] || TEAM.player, c = document.createElement('canvas'); c.width = c.height = 20; const g = c.getContext('2d');
-  const P = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); }, skin = '#f0c8a0', hc = hair || (L.dark ? '#3a3a44' : '#8a5a30'), ink = '#1a1420';
+  const P = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); }, skin = '#f0c8a0', skinS = '#d8a080', hc = hair || (L.dark ? '#3a3a44' : '#8a5a30'), ink = '#1a1420', lite = (h, k) => { const v = parseInt(h.slice(1), 16), f = (q) => Math.min(255, Math.round(q + (255 - q) * k)); return `rgb(${f((v >> 16) & 255)},${f((v >> 8) & 255)},${f(v & 255)})`; };
   const bob = frame % 2 ? 1 : 0, walk = face !== 'down' || frame > 1 ? (frame % 2 ? 1 : -1) : 0;
   g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(4, 18, 12, 2);
   const side = face === 'side', back = face === 'up';
@@ -129,21 +132,21 @@ export function sprite(lookId, team, hair, frame = 0, face = 'down', gray = fals
     if (L.mount === 'wyvern') { const wf = frame % 2; P(4, 11 + bob, 11, 5, M[0]); P(14, 7 + bob, 4, 5, M[0]); P(17, 8 + bob, 3, 2, M[1]); P(16, 8 + bob, 1, 1, '#f0d040'); P(0, 6 - wf * 3 + bob, 7, 5, M[1]); P(1, 5 - wf * 3 + bob, 5, 1, M[2]); P(1, 14 + bob, 4, 2, M[1]); P(5, 16 + bob, 2, 3, M[1]); P(11, 16 + bob, 2, 3, M[1]); by = 2 + bob; }
   } else {
     // legs
-    const ly = by + 8; P(bx, ly, 2, 4 - (walk > 0 ? 1 : 0), L.armor ? T[1] : '#4a3a30'); P(bx + 4, ly, 2, 4 - (walk < 0 ? 1 : 0), L.armor ? T[1] : '#4a3a30'); P(bx, ly + 3, 2, 1, ink); P(bx + 4, ly + 3, 2, 1, ink);
+    const ly = by + 8; P(bx, ly, 2, 4 - (walk > 0 ? 1 : 0), L.armor ? T[1] : '#4a3a30'); P(bx + 4, ly, 2, 4 - (walk < 0 ? 1 : 0), L.armor ? T[1] : '#4a3a30'); P(bx, ly + 2, 2, 1, L.armor ? '#9a9aa8' : '#6a4a2a'); P(bx + 4, ly + 2, 2, 1, L.armor ? '#9a9aa8' : '#6a4a2a'); P(bx, ly + 3, 2, 1, ink); P(bx + 4, ly + 3, 2, 1, ink); P(bx + 1, ly, 1, 2, L.armor ? '#d8d8e0' : '#5a4a40');
     if (L.robe || L.dress) { P(bx - 1, by + 5, 8, 6, L.robe ? T[1] : T[0]); P(bx - 1, by + 10, 8, 1, T[2]); }
   }
   // torso
   const tw = L.bulk || L.armor || L.big ? 8 : 6, tx = bx + 3 - tw / 2;
   if (L.cape) P(tx - 1, by + 1, tw + 2, 8, back ? T[1] : T[1]);
-  P(tx, by + 2, tw, 6, L.bare ? skin : T[0]); P(tx, by + 2, tw, 1, T[2]); if (L.armor || L.armorLite) { P(tx, by + 2, tw, 2, '#c8c8d0'); P(tx + 1, by + 4, tw - 2, 1, '#9a9aa8'); }
-  if (!L.armor && !L.bare) P(tx, by + 6, tw, 1, '#5a4030');
+  P(tx, by + 2, tw, 6, L.bare ? skin : T[0]); P(tx, by + 2, tw, 1, T[2]); if (!back) P(tx + tw - 1, by + 3, 1, 5, L.bare ? skinS : T[1]); if (!L.bare && !back) P(tx + 1, by + 3, 1, 2, lite(T[0], 0.35)); if (L.armor || L.armorLite) { P(tx, by + 2, tw, 2, '#c8c8d0'); P(tx + 1, by + 4, tw - 2, 1, '#9a9aa8'); }
+  if (!L.armor && !L.bare) { P(tx, by + 6, tw, 1, '#5a4030'); if (!back) P(tx + tw / 2 - 0.5, by + 6, 1, 1, '#e8c860'); }
   // arms
   P(tx - 1, by + 3, 1, 4, L.bare ? skin : T[1]); P(tx + tw, by + 3, 1, 4, L.bare ? skin : T[1]);
   // head
   const hx = bx + 1, hy = by - 4;
   if (L.helm || L.armor) { P(hx - 1, hy, 6, 5, '#b8b8c0'); P(hx - 1, hy, 6, 1, '#d8d8e0'); if (!back) { P(hx, hy + 2, 4, 2, skin); P(hx + 1, hy + 3, 1, 1, ink); P(hx + 3, hy + 3, 1, 1, ink); } if (L.horns) { P(hx - 2, hy - 1, 1, 2, '#e8dcc0'); P(hx + 5, hy - 1, 1, 2, '#e8dcc0'); } }
   else {
-    P(hx, hy + 1, 4, 4, skin); P(hx - 1, hy, 6, 2, hc); P(hx - 1, hy + 1, 1, 3, hc); P(hx + 4, hy + 1, 1, 3, hc); if (back) P(hx, hy + 1, 4, 3, hc);
+    P(hx, hy + 1, 4, 4, skin); if (!back) { P(hx + 3, hy + 2, 1, 3, skinS); P(hx, hy + 4, 4, 1, skinS); } P(hx - 1, hy, 6, 2, hc); P(hx - 1, hy + 1, 1, 3, hc); P(hx + 4, hy + 1, 1, 3, hc); P(hx, hy - 1, 4, 1, hc); P(hx, hy, 3, 1, lite(hc, 0.35)); if (back) P(hx, hy + 1, 4, 3, hc); if (!back) P(hx + 1, hy + 2, 2, 1, hc);
     if (L.long) { P(hx - 1, hy + 3, 1, 4, hc); P(hx + 4, hy + 3, 1, 4, hc); }
     if (!back) { P(side ? hx + 2 : hx + 1, hy + 3, 1, 1, ink); if (!side) P(hx + 3, hy + 3, 1, 1, ink); }
     if (L.hood || L.veil) { P(hx - 1, hy - 1, 6, 3, L.veil ? '#f0ece4' : T[1]); P(hx - 1, hy + 1, 1, 4, L.veil ? '#f0ece4' : T[1]); P(hx + 4, hy + 1, 1, 4, L.veil ? '#f0ece4' : T[1]); }
