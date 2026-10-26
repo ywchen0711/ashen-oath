@@ -3,7 +3,8 @@
 // coloured line art and hard-edged cel shading. A portrait is built from its description (hair style and colour,
 // eyes, outfit, extras) and an expression: 平 normal, 笑 smile, 喜 grin, 怒 anger, 悲 sorrow, 驚 surprise, 痛 pain,
 // 冷 cold, 羞 shy, 決 resolve, 閉 eyes closed, 哭 tears. Portraits face right; pass flip to face left.
-import { watercolor } from './paint.js';
+import { watercolor, brushify } from './paint.js';
+const area = (g) => g.canvas.width * g.canvas.height / (192 * 192);
 const CACHE = new Map();
 const LASH = '#3a1e36';
 const shade = (hex, k) => { const n = parseInt(hex.slice(1), 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255, f = (v) => Math.max(0, Math.min(255, Math.round(k > 1 ? v + (255 - v) * (k - 1) : v * k))); return `rgb(${f(r)},${f(g)},${f(b)})`; };
@@ -88,7 +89,7 @@ function draw(g, p, ex) {
   if (!H.helm && !H.hood && H.veil !== 'nun') backHair(g, H, p, G, hc);
   // ---- neck, body, then the face
   neck(g, p, G, skin);
-  layer(g, (l) => body(l, p, OUT[p.out] || 'shirt', G), (l) => { lightFall(l, G.cx - 90, G.ey + 40, G.cx + 70, 210, 0.24, 0.16); rim(l, G); });
+  layer(g, (l) => body(l, p, OUT[p.out] || 'shirt', G), (l) => { lightFall(l, G.cx - 90, G.ey + 40, G.cx + 70, 210, 0.24, 0.16); rim(l, G); brushify(l.canvas, { n: Math.round(2200 * area(l)), len: 7, width: 1.8, alpha: 0.34, seed: 5, flat: 1.25, spread: 0.6 }); });
   face(g, p, G, skin, H, ex);
   // ---- hair in front, then hats and other things on top
   if (!H.helm && !H.hood) frontHair(g, H, p, G, hc);
@@ -152,7 +153,7 @@ function face(g, p, G, skin, H, ex) {
   eyes(g, p, ex, G);
   nose(g, G);
   mouth(g, p, ex, G);
-  if (p.stubble) { g.save(); facePath(g, G); g.clip(); g.fillStyle = 'rgba(60,40,50,0.07)'; path(g, [[cx - fw, ey + 12], [cx - fw + 6, ey + 30, cx + 8, chin + 2], [cx + fw - 2, ey + 26, cx + fw, ey + 12], [cx + fw - 6, ey + 26, mid + 12, ey + 22], [mid, ey + 20, mid - 12, ey + 22], [cx - fw + 6, ey + 24, cx - fw, ey + 12]]); g.fill(); g.fillStyle = 'rgba(50,30,40,0.3)'; for (let k = 0; k < 70; k++) { const t = k / 40, x = cx - fw + 8 + t * (fw * 2 - 10), y = ey + 22 + Math.sin(t * Math.PI) * 13 + (k * 7 % 9); g.fillRect(x, y, 0.8, 0.8); } g.restore(); }
+  if (p.stubble) { g.save(); facePath(g, G); g.clip(); g.filter = 'blur(2px)'; g.fillStyle = 'rgba(60,40,50,0.045)'; path(g, [[cx - fw, ey + 12], [cx - fw + 6, ey + 30, cx + 8, chin + 2], [cx + fw - 2, ey + 26, cx + fw, ey + 12], [cx + fw - 6, ey + 26, mid + 12, ey + 22], [mid, ey + 20, mid - 12, ey + 22], [cx - fw + 6, ey + 24, cx - fw, ey + 12]]); g.fill(); g.fillStyle = 'rgba(50,30,40,0.3)'; for (let k = 0; k < 70; k++) { const t = k / 40, x = cx - fw + 8 + t * (fw * 2 - 10), y = ey + 22 + Math.sin(t * Math.PI) * 13 + (k * 7 % 9); g.fillRect(x, y, 0.8, 0.8); } g.restore(); }
   if (p.beard) beard(g, p, G);
   scars(g, p, G);
 }
@@ -164,7 +165,7 @@ function nose(g, G) {
 // ---------------------------------------------------------------- eyes
 function eyes(g, p, ex, G) {
   const E = EYES[p.eye] || EYES.round, ec = p.ec || '#5a4a3a', { ey, f, kid } = G;
-  const W = (f ? 11.4 : 11.8) * (kid ? 1.04 : 1), H0 = (f ? 13.4 : 10.4) * (kid ? 1.14 : 1) * E.h * (G.old ? 0.85 : 1);
+  const W = (f ? 12 : 12.3) * (kid ? 1.04 : 1), H0 = (f ? 14.2 : 11) * (kid ? 1.14 : 1) * E.h * (G.old ? 0.85 : 1);
   const open = { closed: 0, grin: 0, surprise: 1.22, smile: 0.78, angry: 0.74, cold: 0.62, det: 0.82, pain: 0.42, sad: 0.86, cry: 0.8, shy: 0.86 }[ex] ?? 1;
   const look = ex === 'cold' || ex === 'shy' ? 1.6 : ex === 'sad' ? 0.4 : 0.8, lift = ex === 'sad' || ex === 'cry' ? -0.1 : ex === 'angry' ? 0.16 : ex === 'det' ? 0.08 : 0;
   for (const [x0, sd, sx] of [[G.nearEye, -1, 1], [G.farEye, 1, 0.84]]) {
@@ -333,8 +334,14 @@ function frontHair(g, H, p, G, hc, scale = 1) {
   for (const s of locks) { const t = s[1]; g.strokeStyle = outl; g.lineWidth = 1.1; g.beginPath(); g.moveTo(t[4], t[5]); g.quadraticCurveTo(t[2], t[3], (t[2] + t[0]) / 2, (t[3] + t[1]) / 2); g.stroke(); }
   g.filter = 'none';
   // fine strands through the crown, and a light glint near each lock's tip
-  g.lineWidth = 0.7; for (let k = 0; k < 16; k++) { const a = Math.PI * (1.0 + k / 15 * 1.0), x0 = cx + 2 + Math.cos(a) * rx * 1.15, y0 = cyh + Math.sin(a) * ry * 1.15; g.strokeStyle = k % 3 ? cool(hc, 0.7, 0.2) : warm(hc, 1.25); g.globalAlpha = 0.3; g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo(x0 + Math.cos(a) * -6, y0 + 10, x0 + Math.cos(a) * -4 + (k % 2 ? 3 : -3), (y0 + hl) / 2 + 4); g.stroke(); }
+  g.lineWidth = 0.7; for (let k = 0; k < 16; k++) { const a = Math.PI * (1.0 + k / 15 * 1.0), x0 = cx + 2 + Math.cos(a) * rx * 1.15, y0 = cyh + Math.sin(a) * ry * 1.15; g.strokeStyle = k % 3 ? cool(hc, 0.7, 0.2) : warm(hc, 1.25); g.globalAlpha = 0.16; g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo(x0 + Math.cos(a) * -6, y0 + 10, x0 + Math.cos(a) * -4 + (k % 2 ? 3 : -3), (y0 + hl) / 2 + 4); g.stroke(); }
   g.globalAlpha = 1; for (const s of locks.filter((_, i) => i % 2)) { const t = [s[1][4], s[1][5]], c1 = [s[1][2], s[1][3]]; g.strokeStyle = warm(hc, 1.3); g.globalAlpha = 0.6; g.lineWidth = 1.2; g.beginPath(); g.moveTo((t[0] * 2 + c1[0]) / 3 - 1, (t[1] * 2 + c1[1]) / 3 - 6); g.lineTo(t[0] - 0.5, t[1] - 3); g.stroke(); g.globalAlpha = 1; }
+  // fine strands down every lock, dark and light, as a painter lays them in
+  for (const [i, q] of [...locks, ...sides].entries()) { const L0 = q[0], R0 = [q[2][4], q[2][5]], tip = [q[1][4], q[1][5]];
+    for (const f of [0.18, 0.38, 0.6, 0.82]) { const st = [L0[0] + (R0[0] - L0[0]) * f, L0[1] + (R0[1] - L0[1]) * f], cc = [q[1][2] + (q[2][0] - q[1][2]) * f, q[1][3] + (q[2][1] - q[1][3]) * f], en = [cc[0] + (tip[0] - cc[0]) * 0.8, cc[1] + (tip[1] - cc[1]) * 0.8];
+      const lightS = (i + Math.round(f * 10)) % 3 === 0; g.strokeStyle = lightS ? warm(hc, 1.35) : cool(hc, 0.6, 0.24); g.globalAlpha = lightS ? 0.45 : 0.4; g.lineWidth = lightS ? 0.7 : 0.6;
+      g.beginPath(); g.moveTo(st[0], st[1] + 2); g.quadraticCurveTo(cc[0], cc[1], en[0], en[1]); g.stroke(); } }
+  g.globalAlpha = 1; brushify(g.canvas, { n: Math.round(1200 * area(g)), len: 6, width: 1.5, alpha: 0.22, seed: 3, flat: Math.PI / 2, spread: 0.4 });
   // rim light
   g.save(); g.strokeStyle = warm(hc, 1.6); g.globalAlpha = 0.4; g.lineWidth = 1.3; g.translate(1.6, 1.2); g.beginPath(); add(g, crown.slice(1, 18)); for (const q of sides) { add(g, q); } g.stroke(); g.restore();
   });

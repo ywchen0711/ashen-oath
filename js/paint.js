@@ -42,3 +42,22 @@ export function watercolor(c, o = {}) {
   g.restore();
   return c;
 }
+// Brushwork: lay short strokes of the picture's own colours over it, each running along the edges it sits on
+// (across the way the colour changes), so flat shapes read as painted. Works on an opaque or a cut-out canvas.
+export function brushify(c, o = {}) {
+  const { n = 7000, len = 9, width = 2.6, alpha = 0.42, seed = 7, flat = 0, spread = 1.2 } = o, w = c.width, h = c.height, g = c.getContext('2d');
+  const d = g.getImageData(0, 0, w, h).data, lum = (x, y) => { const i = (y * w + x) * 4; return d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11; };
+  let s = seed >>> 0 || 1; const rnd = () => { s = Math.imul(s ^ (s >>> 15), 2246822507) >>> 0; s = Math.imul(s ^ (s >>> 13), 3266489909) >>> 0; return s / 4294967296; };
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.lineCap = 'round';
+  for (let k = 0; k < n; k++) {
+    const x = 2 + Math.floor(rnd() * (w - 4)), y = 2 + Math.floor(rnd() * (h - 4)), i = (y * w + x) * 4; if (d[i + 3] < 200) continue;
+    { const c0 = lum(x, y), around = (lum(x - 2, y) + lum(x + 2, y) + lum(x, y - 2) + lum(x, y + 2)) / 4; if (c0 - around > 35) continue; }   // leave stars and sparks crisp
+    const gx = lum(x + 2, y) - lum(x - 2, y), gy = lum(x, y + 2) - lum(x, y - 2), m = Math.hypot(gx, gy);
+    // along the edge where there is one; elsewhere a loose sweep, mostly level
+    const a = m > 6 ? Math.atan2(gy, gx) + Math.PI / 2 : flat + (rnd() - 0.5) * spread, L = len * (0.6 + rnd() * 0.8) * (m > 30 ? 0.6 : 1);
+    const ca = Math.cos(a) * L / 2, sa = Math.sin(a) * L / 2, j = (v) => Math.max(0, Math.min(255, v + (rnd() - 0.5) * 18));
+    g.strokeStyle = `rgba(${j(d[i])},${j(d[i + 1])},${j(d[i + 2])},${alpha * (0.6 + rnd() * 0.5)})`; g.lineWidth = width * (0.6 + rnd() * 0.8);
+    g.beginPath(); g.moveTo(x - ca, y - sa); g.quadraticCurveTo(x + sa * 0.3, y - ca * 0.3, x + ca, y + sa); g.stroke();
+  }
+  g.restore(); return c;
+}

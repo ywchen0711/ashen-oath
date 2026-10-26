@@ -5,7 +5,7 @@ import { ITEMS } from './data/items.js';
 import { terrainAt } from './data/terrain.js';
 import { fighter } from './fighters.js';
 import { backdrop } from './bgs.js';
-import { watercolor } from './paint.js';
+import { watercolor, brushify } from './paint.js';
 import { portrait } from './portraits.js';
 import { faceOf } from './faces.js';
 import { CLASSES } from './data/classes.js';
@@ -46,7 +46,7 @@ function platform(col, scene) {
   g.strokeStyle = 'rgba(255,250,220,0.5)'; g.lineWidth = 2; g.beginPath(); g.ellipse(0, 0, 166, 29, 0, Math.PI * 1.08, Math.PI * 1.92); g.stroke();
   g.strokeStyle = 'rgba(20,10,20,0.35)'; g.lineWidth = 1.5; g.beginPath(); g.ellipse(0, 0, 168, 30, 0, 0.05, Math.PI - 0.05); g.stroke();
   if (green) { g.fillStyle = shadeC(col, 0.85); for (let k = 0; k < 50; k++) { const a = 0.08 + k / 49 * (Math.PI - 0.16), x = Math.cos(a) * 168, y = Math.sin(a) * 30; g.beginPath(); g.moveTo(x - 3, y - 1); g.lineTo(x + (rnd() - 0.5) * 2, y + 3 + rnd() * 6); g.lineTo(x + 3, y - 1); g.fill(); } }
-  watercolor(c, { bloom: 0.3, grain: 0.35, scale: 1 }); PLAT.set(key, c); return c;
+  brushify(c, { n: 9000, len: 8, width: 2, alpha: 0.35, seed: 11 }); watercolor(c, { bloom: 0.3, grain: 0.35, scale: 1 }); PLAT.set(key, c); return c;
 }
 // a small mark for each kind of weapon
 function wIcon(g, type, x, y) {
