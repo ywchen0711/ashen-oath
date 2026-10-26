@@ -9,6 +9,7 @@ import { watercolor, brushify } from './paint.js';
 import { portrait } from './portraits.js';
 import { faceOf } from './faces.js';
 import { CLASSES } from './data/classes.js';
+
 // the painted scene behind a fight, a touch out of focus and brighter, so the fighters stand out against it
 const SOFT = new Map();
 function softBackdrop(scene) {
@@ -78,12 +79,15 @@ export class BattleFX {
     // recover the HP each side had before, from the strikes
     const hpA = res.hp0 ? res.hp0.A : att.hp, hpB = res.hp0 ? res.hp0.B : def.hp;
     const hp = { [att.uid]: hpA, [def.uid]: hpB }, shown = { [att.uid]: hpA, [def.uid]: hpB };
-    const fig = { [att.uid]: { pose: 'idle', dx: 0, alpha: 1, flash: 0 }, [def.uid]: { pose: 'idle', dx: 0, alpha: 1, flash: 0 } };
+    const fig = { [att.uid]: { pose: 'idle', dx: 0, dy: 0, alpha: 1, flash: 0, trail: [], ph: 0 }, [def.uid]: { pose: 'idle', dx: 0, dy: 0, alpha: 1, flash: 0, trail: [], ph: 2 } };
+    let dust = [], motes = [], smears = [], cutin = null, zoom = 1, camX = 0;
+    // the frames: every pose and the in-betweens of each move, drawn before the fight starts so nothing stutters
+    for (const u of [att, def]) for (const ps of ['idle', 'wind', 'run', 'strike', 'follow', 'land', 'hit', 'dodge', 'cast', 'shoot', 'idle>wind@0.5', 'wind>strike@0.33', 'wind>strike@0.66', 'strike>follow@0.5', 'idle>cast@0.5', 'hit>idle@0.5']) fighter(u, ps);
     let popups = [], flash = 0, shakeT = 0, proj = null, banner = '', sparks = [], critFx = 0, critSeed = 0;
     const range = Math.abs(att.x - def.x) + Math.abs(att.y - def.y);
     const draw = () => {
       g.setTransform(dpr, 0, 0, dpr, 0, 0); g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillRect(0, 0, W, Hh);
-      g.save(); g.translate(W / 2 + (shakeT > 0 ? (Math.random() - 0.5) * 14 * shakeT : 0), Hh / 2 - 40 * S); g.scale(S, S);
+      g.save(); g.translate(W / 2 + (shakeT > 0 ? (Math.random() - 0.5) * 14 * shakeT : 0), Hh / 2 - 40 * S + (shakeT > 0 ? (Math.random() - 0.5) * 8 * shakeT : 0)); g.scale(S, S); g.save(); g.scale(zoom, zoom); g.translate(-camX * (1 - 1 / zoom), -30 * (1 - 1 / zoom));
       // the arena
       g.save(); g.beginPath(); g.rect(-460, -230, 920, 410); g.clip(); g.drawImage(softBackdrop(scene), -460, -300, 920, 518); const dim = g.createLinearGradient(0, -230, 0, 180); dim.addColorStop(0, 'rgba(0,0,0,0)'); dim.addColorStop(0.75, 'rgba(10,0,30,0.08)'); dim.addColorStop(1, 'rgba(10,0,30,0.4)'); g.fillStyle = dim; g.fillRect(-460, -230, 920, 410);
       if (critFx > 0) { g.save(); g.globalAlpha = Math.min(1, critFx * 1.4); const cg = g.createRadialGradient(0, 20, 30, 0, 20, 520); cg.addColorStop(0, 'rgba(255,240,200,0.0)'); cg.addColorStop(1, 'rgba(120,20,60,0.55)'); g.fillStyle = cg; g.fillRect(-460, -230, 920, 410); g.strokeStyle = 'rgba(255,255,255,0.85)'; for (let k = 0; k < 46; k++) { const a = k / 46 * Math.PI * 2 + critSeed, r0 = 180 + ((k * 53) % 90); g.lineWidth = 1 + (k % 3); g.beginPath(); g.moveTo(Math.cos(a) * r0, 20 + Math.sin(a) * r0 * 0.7); g.lineTo(Math.cos(a) * 700, 20 + Math.sin(a) * 490); g.stroke(); } g.restore(); }
@@ -91,13 +95,25 @@ export class BattleFX {
       for (const sx of [-1, 1]) g.drawImage(platform(floorC, scene), sx * 175 - 180, 86, 360, 100);
       g.restore(); g.strokeStyle = '#3a2a10'; g.lineWidth = 7; g.strokeRect(-460, -230, 920, 410); g.strokeStyle = '#e8c870'; g.lineWidth = 3; g.strokeRect(-460, -230, 920, 410); g.strokeStyle = 'rgba(255,240,200,0.6)'; g.lineWidth = 1; g.strokeRect(-455, -225, 910, 400);
       g.imageSmoothingEnabled = true;
-      for (const u of [left, right]) { const F2 = fig[u.uid], sd = u === right ? 1 : -1; if (F2.alpha <= 0) continue; const img = fighter(u, F2.pose); if (F2.pose === 'strike' && F2.dx > 30) for (const [o, a] of [[70, 0.14], [36, 0.26]]) { g.save(); g.globalAlpha = a * F2.alpha; g.translate(sd * 175 - sd * (F2.dx - o), 132); g.scale(-sd * 0.86, 0.86); g.drawImage(img, -260, -460); g.restore(); } g.save(); g.globalAlpha = F2.alpha; g.translate(sd * 175 - sd * F2.dx, 132); g.scale(-sd * 0.86, 0.86); g.drawImage(img, -260, -460); if (F2.flash > 0) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = F2.flash * 0.8; g.drawImage(img, -260, -460); } g.restore(); }
+      const now = performance.now() / 1000;
+      for (const d of dust) { const k = d.t / d.life; g.fillStyle = `rgba(230,220,200,${0.45 * (1 - k)})`; g.beginPath(); g.ellipse(d.x + d.vx * d.t, d.y - d.t * 14, d.r * (0.6 + k), d.r * 0.55 * (0.6 + k), 0, 0, 7); g.fill(); }
+      for (const u of [left, right]) { const F2 = fig[u.uid], sd = u === right ? 1 : -1; if (F2.alpha <= 0) continue; const img = fighter(u, F2.pose);
+        const at = (dx, dy, a, sc = 1) => { g.save(); g.globalAlpha = a; g.translate(sd * 175 - sd * dx, 132 + dy); g.scale(-sd * 0.86, 0.86 * sc); g.drawImage(img, -260, -460); g.restore(); };
+        F2.trail.forEach((t, k) => { g.save(); g.filter = 'saturate(0.4) brightness(1.4)'; at(t[0], t[1], 0.08 + k * 0.07); g.restore(); });
+        const breathe = F2.pose === 'idle' ? 1 + Math.sin(now * 2.6 + F2.ph) * 0.012 : 1;
+        g.save(); g.globalAlpha = F2.alpha; g.translate(sd * 175 - sd * F2.dx, 132 + F2.dy); g.scale(-sd * 0.86, 0.86 * breathe); g.drawImage(img, -260, -460 / breathe * breathe); if (F2.flash > 0) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = F2.flash * 0.85; g.drawImage(img, -260, -460); } g.restore(); }
+      // the light of each swing, sweeping round in front of the one who swings
+      for (const sm of smears) { const k = sm.t / 0.22, f = sm.f; g.save(); g.translate(sm.x, sm.y); g.scale(f, 1); g.globalCompositeOperation = 'lighter'; const a0 = -2.1, a1 = a0 + (0.4 + Math.min(1, k * 3) * 2.6);
+        const gr = g.createLinearGradient(-90, -90, 90, 90); gr.addColorStop(0, `rgba(${sm.c},0)`); gr.addColorStop(1, `rgba(${sm.c},${0.75 * (1 - k)})`); g.strokeStyle = gr; g.lineWidth = 26 * (1 - k * 0.6); g.beginPath(); g.arc(0, 0, 78, a0, a1); g.stroke();
+        g.strokeStyle = `rgba(255,255,255,${0.9 * (1 - k)})`; g.lineWidth = 3; g.beginPath(); g.arc(0, 0, 88, a0 + 0.4, a1); g.stroke(); g.restore(); }
+      for (const m of motes) { const k = m.t / m.life; g.fillStyle = `rgba(${m.c},${1 - k})`; g.beginPath(); g.arc(m.x + m.vx * m.t, m.y + m.vy * m.t, m.r * (1 - k * 0.5), 0, 7); g.fill(); }
       // slashes where a blow lands
       for (const s2 of slashes) { const k = s2.t / 0.3; g.save(); g.translate(s2.x, s2.y); g.rotate(-0.6 * s2.sd); g.globalAlpha = Math.max(0, 1 - k); g.globalCompositeOperation = 'lighter'; g.strokeStyle = s2.crit ? '#ffe070' : '#ffffff'; g.lineWidth = 10 * (1 - k) + 2; g.beginPath(); g.arc(0, 0, 70 + k * 30, -0.9 + k * 0.4, 0.9 + k * 0.4); g.stroke(); g.lineWidth = 3; g.strokeStyle = '#ffffff'; g.beginPath(); g.arc(0, 0, 64 + k * 30, -0.7 + k * 0.4, 0.7 + k * 0.4); g.stroke(); g.restore(); }
       for (const sp of sparks) { const k = sp.t / 0.35; g.save(); g.translate(sp.x, sp.y); g.globalCompositeOperation = 'lighter'; g.globalAlpha = Math.max(0, 1 - k); const c1 = sp.crit ? '255,220,120' : '255,255,255', c2 = sp.crit ? '255,120,40' : '140,200,255'; const gr = g.createRadialGradient(0, 0, 0, 0, 0, 60 + k * 40); gr.addColorStop(0, `rgba(${c1},0.9)`); gr.addColorStop(0.3, `rgba(${c2},0.5)`); gr.addColorStop(1, `rgba(${c2},0)`); g.fillStyle = gr; g.beginPath(); g.arc(0, 0, 60 + k * 40, 0, 7); g.fill(); g.fillStyle = `rgba(${c1},1)`; g.beginPath(); for (let q = 0; q < 16; q++) { const a = q / 16 * Math.PI * 2 + sp.r, r = q % 2 ? 10 + k * 10 : (q % 4 ? 40 : 70) * (0.6 + k * 0.8); g.lineTo(Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); g.fill(); g.strokeStyle = `rgba(${c2},0.9)`; g.lineWidth = 3 * (1 - k); g.beginPath(); g.arc(0, 0, 20 + k * 70, 0, 7); g.stroke(); g.restore(); }
       if (proj) drawProj(g, proj);
       for (const p of popups) { const sz = p.big ? 70 : 50, y = p.y - Math.min(p.t, 0.25) * 120 + Math.max(0, p.t - 0.25) * -20 + (p.t < 0.35 ? Math.sin(p.t / 0.35 * Math.PI) * -14 : 0); g.font = `900 ${sz}px "Noto Serif TC", serif`; g.textAlign = 'center'; g.lineJoin = 'round'; g.globalAlpha = Math.max(0, Math.min(1, (1.2 - p.t) / 0.4)); g.lineWidth = 9; g.strokeStyle = '#1a0a1a'; g.strokeText(p.text, p.x, y); const gr = g.createLinearGradient(0, y - sz * 0.8, 0, y); gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.55, p.col); gr.addColorStop(1, shadeC(p.col[0] === '#' && p.col.length === 7 ? p.col : '#ffffff', 0.7)); g.fillStyle = gr; g.fillText(p.text, p.x, y); g.globalAlpha = 1; }
       if (banner) { g.save(); g.font = '900 64px "Noto Serif TC", serif'; g.textAlign = 'center'; g.lineJoin = 'round'; g.lineWidth = 12; g.strokeStyle = '#3a0a0a'; g.strokeText(banner, 0, -140); const bg = g.createLinearGradient(0, -190, 0, -140); bg.addColorStop(0, '#fffbe0'); bg.addColorStop(0.5, '#ffd040'); bg.addColorStop(1, '#e06a10'); g.fillStyle = bg; g.fillText(banner, 0, -140); g.restore(); }
+      g.restore(); // the panels stay put when the camera pushes in
       // the bars: name, weapon, HP, and the numbers
       for (const u of [left, right]) { const sd = u === right ? 1 : -1, x0 = sd > 0 ? 20 : -460, y0 = 190, f = res.f, N = u === att ? f.A : f.B, F2 = fig[u.uid];
         const base = u.side === 'player' ? ['#2a4ab0', '#142466', '#6a90f0'] : u.side === 'ally' ? ['#2a8a44', '#0e4a20', '#70c880'] : ['#b02a34', '#5a0e18', '#f07070'];
@@ -123,22 +139,57 @@ export class BattleFX {
         g.fillStyle = '#100810'; for (let q = 1; q < m; q++) { if (m > 40 && q % 2) continue; g.fillRect(bx + bw * q / m - 0.5, by, 1, 14); }
       }
       g.restore();
+      if (cutin) { const k = cutin.t / cutin.life, sd = cutin.sd, inK = Math.min(1, k * 5), outK = Math.max(0, (k - 0.8) * 5), y0 = Hh * 0.28, hh = Hh * 0.36;
+        g.save(); g.fillStyle = `rgba(10,5,20,${0.55 * (1 - outK)})`; g.fillRect(0, 0, W, Hh);
+        g.translate(sd > 0 ? W * (1 - inK) + W * outK * 0.2 : -W * (1 - inK) - W * outK * 0.2, 0); g.globalAlpha = 1 - outK;
+        const bg = g.createLinearGradient(0, y0, 0, y0 + hh); bg.addColorStop(0, cutin.c[0]); bg.addColorStop(1, cutin.c[1]); g.fillStyle = bg; g.beginPath(); g.moveTo(0, y0 + 30); g.lineTo(W, y0); g.lineTo(W, y0 + hh - 30); g.lineTo(0, y0 + hh); g.closePath(); g.fill();
+        g.save(); g.clip(); g.strokeStyle = 'rgba(255,255,255,0.25)'; for (let q = 0; q < 26; q++) { const yy = y0 + ((q * 37 + cutin.t * 900) % hh); g.lineWidth = 1 + (q % 3); g.beginPath(); g.moveTo(0, yy); g.lineTo(W, yy - 30); g.stroke(); }
+        const pz = hh * 1.5, px = sd > 0 ? W * 0.62 : W * 0.38 - pz; g.drawImage(cutin.img, px + (sd > 0 ? -1 : 1) * k * 30, y0 - pz * 0.12, pz, pz); g.restore();
+        g.strokeStyle = '#ffe9a8'; g.lineWidth = 3; g.beginPath(); g.moveTo(0, y0 + 30); g.lineTo(W, y0); g.moveTo(0, y0 + hh); g.lineTo(W, y0 + hh - 30); g.stroke();
+        g.font = `900 ${Math.round(hh * 0.3)}px "Noto Serif TC", serif`; g.textAlign = sd > 0 ? 'left' : 'right'; g.lineWidth = 8; g.strokeStyle = '#2a0a12'; const tx = sd > 0 ? W * 0.12 : W * 0.88; g.strokeText('必殺', tx, y0 + hh * 0.62); g.fillStyle = '#fff3c0'; g.fillText('必殺', tx, y0 + hh * 0.62);
+        g.restore(); }
       if (flash > 0) { g.fillStyle = `rgba(255,255,255,${flash})`; g.fillRect(0, 0, W, Hh); }
     };
     let last = performance.now(), skip = false; const onKey = () => { skip = true; }; addEventListener('keydown', onKey); cv.addEventListener('pointerdown', onKey);
-    const wait = (ms, step) => new Promise((resolve) => { const t0 = performance.now(); const loop = (now) => { const dt = Math.min(0.05, (now - last) / 1000); last = now; for (const p of popups) p.t += dt; popups = popups.filter((p) => p.t < 1.2); for (const s2 of slashes) s2.t += dt; slashes = slashes.filter((s2) => s2.t < 0.3); for (const sp of sparks) sp.t += dt; sparks = sparks.filter((sp) => sp.t < 0.35); critFx = Math.max(0, critFx - dt * 1.6); flash = Math.max(0, flash - dt * 3); shakeT = Math.max(0, shakeT - dt * 3); for (const u of [att, def]) { fig[u.uid].flash = Math.max(0, fig[u.uid].flash - dt * 4); shown[u.uid] += (hp[u.uid] - shown[u.uid]) * Math.min(1, dt * 8); } const k = Math.min(1, (now - t0) / ms); if (step) step(k); draw(); if (k < 1 && !skip) requestAnimationFrame(loop); else resolve(); }; requestAnimationFrame(loop); });
+    const wait = (ms, step) => new Promise((resolve) => { const t0 = performance.now(); const loop = (now) => { const dt = Math.min(0.05, (now - last) / 1000); last = now; for (const p of popups) p.t += dt; popups = popups.filter((p) => p.t < 1.2); for (const s2 of slashes) s2.t += dt; slashes = slashes.filter((s2) => s2.t < 0.3); for (const sp of sparks) sp.t += dt; sparks = sparks.filter((sp) => sp.t < 0.35); for (const d of dust) d.t += dt; dust = dust.filter((d) => d.t < d.life); for (const m of motes) { m.t += dt; m.vy -= dt * 30; } motes = motes.filter((m) => m.t < m.life); for (const sm of smears) sm.t += dt; smears = smears.filter((sm) => sm.t < 0.22); if (cutin) { cutin.t += dt; if (cutin.t >= cutin.life) cutin = null; } for (const u of [att, def]) { const F2 = fig[u.uid]; if (F2.ghost) { F2.trail.push([F2.dx, F2.dy]); if (F2.trail.length > 4) F2.trail.shift(); } else if (F2.trail.length) F2.trail.shift(); } critFx = Math.max(0, critFx - dt * 1.6); flash = Math.max(0, flash - dt * 3); shakeT = Math.max(0, shakeT - dt * 3); for (const u of [att, def]) { fig[u.uid].flash = Math.max(0, fig[u.uid].flash - dt * 4); shown[u.uid] += (hp[u.uid] - shown[u.uid]) * Math.min(1, dt * 8); } const k = Math.min(1, (now - t0) / ms); if (step) step(k); draw(); if (k < 1 && !skip) requestAnimationFrame(loop); else resolve(); }; requestAnimationFrame(loop); });
     await wait(350);
     for (const s of res.strikes) {
       const u = s.side === 'A' ? att : def, o = u === att ? def : att, F2 = fig[u.uid], FO = fig[o.uid], w = ITEMS[(u === att ? res.wA : res.wB) || ''] || null, sdO = o === right ? 1 : -1;
       const ranged = w && (w.type === 'bow' || w.magic) && (range > 1 || w.type === 'bow');
-      if (s.crit) { banner = '必殺！'; F2.pose = 'wind'; flash = 0.6; critFx = 1; critSeed = Math.random() * 6; await wait(420); }
-      if (!ranged) { F2.pose = 'wind'; await wait(180, (k) => { F2.dx = -k * 20; }); F2.pose = 'strike'; await wait(140, (k) => { F2.dx = -20 + k * 230; }); }
-      else { F2.pose = w.type === 'bow' ? 'shoot' : 'cast'; await wait(220); const x0 = (u === right ? 1 : -1) * 120, x1 = sdO * 160; proj = { x: x0, y: 30, x0, x1, k: 0, kind: w.type === 'bow' ? 'arrow' : w.type === 'dark' ? 'dark' : w.type === 'light' ? 'light' : w.name === '雷擊' || w.name === '雷霆' ? 'thunder' : w.eff && w.eff.includes('fly') ? 'wind' : 'fire', trail: [] }; await wait(w.type === 'bow' ? 220 : 320, (k) => { proj.k = k; proj.x = x0 + (x1 - x0) * k; proj.y = 30 - Math.sin(k * Math.PI) * (w.type === 'bow' ? 30 : 10); proj.trail.push([proj.x, proj.y]); if (proj.trail.length > 14) proj.trail.shift(); }); proj = null; }
-      if (s.hit) { hp[o.uid] = Math.max(0, hp[o.uid] - s.dmg); FO.flash = 1; FO.pose = 'hit'; sparks.push({ x: sdO * 165, y: 10, t: 0, crit: s.crit, r: Math.random() * 3 }); if (s.crit) critFx = Math.max(critFx, 0.8); if (!ranged) slashes.push({ x: sdO * 175, y: 30, t: 0, sd: sdO, crit: s.crit }); shakeT = s.crit ? 1 : 0.5; popups.push({ text: s.dmg ? String(s.dmg) : '無效', x: sdO * 170, y: -40, col: s.crit ? '#ffd040' : '#ffffff', big: s.crit, t: 0 }); if (s.lethal) popups.push({ text: '致命', x: sdO * 170, y: -110, col: '#ff6a6a', t: 0 }); if (s.miracle) popups.push({ text: '奇蹟', x: sdO * 170, y: -110, col: '#a0e8ff', t: 0 }); opts.sound?.(s.crit ? 'crit' : 'hit'); }
-      else { FO.pose = 'dodge'; popups.push({ text: 'MISS', x: sdO * 170, y: -40, col: '#a8c8ff', t: 0 }); opts.sound?.('miss'); await wait(200, (k) => { FO.dx = -Math.sin(k * Math.PI) * 50; }); }
-      await wait(260, (k) => { if (!ranged) F2.dx = 210 * (1 - k); });
-      F2.pose = 'idle'; F2.dx = 0; FO.pose = 'idle'; FO.dx = 0; banner = '';
-      if (hp[o.uid] <= 0) { opts.sound?.('death'); await wait(700, (k) => { FO.alpha = (1 - k) * (Math.floor(k * 12) % 2 ? 0.4 : 1); }); FO.alpha = 0; break; }
+      const sdU = u === right ? 1 : -1, ease = (k) => 1 - Math.pow(1 - k, 3), puff = (x, n = 5) => { for (let q = 0; q < n; q++) dust.push({ x: x + (Math.random() - 0.5) * 30, y: 134, vx: (Math.random() - 0.5) * 60, r: 8 + Math.random() * 10, t: 0, life: 0.4 + Math.random() * 0.3 }); };
+      const blend = async (F, a, b, ms, step) => { const n = a === 'wind' && b === 'strike' ? [0.33, 0.66] : [0.5]; for (const t of n) { F.pose = `${a}>${b}@${t}`; await wait(ms / (n.length + 1), step && ((k) => step((n.indexOf(t) + k) / (n.length + 1)))); } F.pose = b; await wait(ms / (n.length + 1), step && ((k) => step((n.length + k) / (n.length + 1)))); };
+      if (s.crit) { // the cut-in: the face of the one striking, sliding across a band of light
+        const face = faceOf(u); cutin = { t: 0, life: 0.95, sd: sdU, img: portrait(face, '決', 384, sdU > 0), c: u.side === 'player' ? ['#2a4ab8', '#7a3ab8'] : ['#b82a3a', '#5a1a5a'] }; opts.sound?.('crit');
+        await blend(F2, 'idle', 'wind', 200); await wait(760); flash = 0.7; critFx = 1; critSeed = Math.random() * 6; banner = '必殺！'; }
+      if (!ranged) {
+        // wind up, dash in leaving afterimages and dust, swing through
+        if (!s.crit) await blend(F2, 'idle', 'wind', 170, (k) => { F2.dx = -k * 16; });
+        F2.ghost = true; F2.pose = 'run'; puff(sdU * 175, 4);
+        if (s.crit) { camX = sdU * 60; await wait(160, (k) => { F2.dx = -16 + ease(k) * 226; F2.dy = -Math.sin(k * Math.PI) * 8; zoom = 1 + ease(k) * 0.14; }); }
+        else await wait(150, (k) => { F2.dx = -16 + ease(k) * 226; F2.dy = -Math.sin(k * Math.PI) * 8; });
+        F2.dy = 0; await blend(F2, 'wind', 'strike', 90);
+        smears.push({ x: sdU * 175 - sdU * F2.dx - sdU * 30, y: -10, f: -sdU, t: 0, c: s.crit ? '255,210,110' : '190,220,255' });
+      } else {
+        await blend(F2, 'idle', w.type === 'bow' ? 'shoot' : 'cast', 220);
+        const x0 = (u === right ? 1 : -1) * 120, x1 = sdO * 160; proj = { x: x0, y: 30, x0, x1, k: 0, kind: w.type === 'bow' ? 'arrow' : w.type === 'dark' ? 'dark' : w.type === 'light' ? 'light' : w.name === '雷擊' || w.name === '雷霆' ? 'thunder' : w.eff && w.eff.includes('fly') ? 'wind' : 'fire', trail: [] };
+        await wait(w.type === 'bow' ? 220 : 320, (k) => { proj.k = k; proj.x = x0 + (x1 - x0) * k; proj.y = 30 - Math.sin(k * Math.PI) * (w.type === 'bow' ? 30 : 10); proj.trail.push([proj.x, proj.y]); if (proj.trail.length > 14) proj.trail.shift(); });
+        if (w.type !== 'bow') { const col = { dark: '200,130,255', light: '255,240,170', thunder: '170,200,255', wind: '150,240,180', fire: '255,160,70' }[proj.kind]; for (let q = 0; q < 26; q++) { const a = Math.random() * 6.28, v = 60 + Math.random() * 160; motes.push({ x: x1, y: 20, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 40, r: 3 + Math.random() * 4, t: 0, life: 0.5 + Math.random() * 0.3, c: col }); } }
+        proj = null;
+      }
+      if (s.hit) {
+        hp[o.uid] = Math.max(0, hp[o.uid] - s.dmg); FO.flash = 1; FO.pose = 'hit'; sparks.push({ x: sdO * 165, y: 10, t: 0, crit: s.crit, r: Math.random() * 3 }); if (s.crit) critFx = Math.max(critFx, 0.8);
+        shakeT = s.crit ? 1.2 : 0.6; popups.push({ text: s.dmg ? String(s.dmg) : '無效', x: sdO * 170, y: -40, col: s.crit ? '#ffd040' : '#ffffff', big: s.crit, t: 0 }); if (s.lethal) popups.push({ text: '致命', x: sdO * 170, y: -110, col: '#ff6a6a', t: 0 }); if (s.miracle) popups.push({ text: '奇蹟', x: sdO * 170, y: -110, col: '#a0e8ff', t: 0 }); if (!s.crit) opts.sound?.('hit');
+        // the hit-stop: the world holds still for a beat, then the blow knocks them back
+        F2.ghost = false; await wait(s.crit ? 150 : 85);
+        await wait(130, (k) => { FO.dx = -Math.sin(k * Math.PI * 0.5) * (s.crit ? 46 : 28); FO.dy = -Math.sin(k * Math.PI) * 6; });
+        puff(sdO * 175 + sdO * FO.dx * -1, 3);
+      } else { FO.pose = 'dodge'; FO.ghost = true; popups.push({ text: 'MISS', x: sdO * 170, y: -40, col: '#a8c8ff', t: 0 }); opts.sound?.('miss'); await wait(200, (k) => { FO.dx = -Math.sin(k * Math.PI) * 60; FO.dy = -Math.sin(k * Math.PI) * 14; }); FO.ghost = false; FO.dy = 0; }
+      // follow through, then a hop back to the start, landing on bent knees
+      if (!ranged) { await blend(F2, 'strike', 'follow', 130); F2.ghost = true; F2.pose = 'dodge'; await wait(280, (k) => { F2.dx = 210 * (1 - ease(k)); F2.dy = -Math.sin(k * Math.PI) * 34; zoom = 1 + (zoom - 1) * (1 - k); }); F2.ghost = false; F2.dx = 0; F2.dy = 0; zoom = 1; camX = 0; F2.pose = 'land'; puff(sdU * 175, 4); await wait(90); }
+      else await blend(F2, F2.pose, 'idle', 160);
+      if (FO.pose === 'hit' && hp[o.uid] > 0) await blend(FO, 'hit', 'idle', 160, (k) => { FO.dx *= 1 - k; FO.dy = 0; });
+      F2.pose = 'idle'; F2.dx = 0; FO.pose = 'idle'; FO.dx = 0; FO.dy = 0; banner = '';
+      if (hp[o.uid] <= 0) { opts.sound?.('death'); FO.pose = 'hit'; for (let q = 0; q < 40; q++) motes.push({ x: sdO * 175 + (Math.random() - 0.5) * 90, y: 120 - Math.random() * 180, vx: (Math.random() - 0.5) * 30, vy: -20 - Math.random() * 50, r: 2 + Math.random() * 3, t: Math.random() * 0.3, life: 1 + Math.random() * 0.5, c: '255,250,235' }); await wait(800, (k) => { FO.alpha = 1 - k; FO.flash = Math.max(FO.flash, 0.6 * (1 - k)); FO.dy = -k * 10; }); FO.alpha = 0; break; }
       if (s.broke) popups.push({ text: '武器損壞', x: (u === right ? 1 : -1) * 170, y: -120, col: '#ffb0a0', t: 0 });
       await wait(180);
     }

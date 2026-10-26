@@ -52,6 +52,8 @@ export function fighter(u, pose) {
     hair: hair || (FEMALE[look] ? ['long', 'pony', 'bob'][seed % 3] : ['short', 'spiky', 'messy', 'short'][seed % 4]),
     beard: P && P.beard, longBeard: P && (P.longBeard || P.braidBeard), veil: P && (P.hair === 'veil' || P.veil), scarf: P && P.scarf, hat: !named && HAT[look] && P.g !== 'f',
     trim: P && P.ac ? P.ac : k.tier === 2 ? '#e8c060' : sh(T[1], 0.8), tier: k.tier || 1 };
+  // a pose can be a blend of two, 'wind>strike@0.5', for the frames in between
+  if (pose.includes('>')) { const [a, rest] = pose.split('>'), [b, ts] = rest.split('@'), t = +ts, A = poseFor({ ...L, pose: a }), B2 = poseFor({ ...L, pose: b }), M = {}; for (const k of new Set([...Object.keys(A), ...Object.keys(B2)])) M[k] = (A[k] || 0) + ((B2[k] || 0) - (A[k] || 0)) * t; L.pose = t < 0.5 ? a : b; L.params = M; }
   draw(g, L);
   // the light over the whole figure: warm from above and in front, violet shade low down
   g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-atop';
@@ -96,10 +98,16 @@ const POSE = {
   shoot: { lean: 0.03, ft: 0.38, fs: 0.05, bt: -0.34, bs: -0.12, fa: 1.52, ff: 1.57, ba: -2.0, bf: 1.42, wa: 1.57 },
   hit: { lean: -0.4, ft: 0.15, fs: 0.25, bt: -0.55, bs: -0.1, fa: -0.35, ff: 0.4, ba: -1.0, bf: -0.5, wa: 2.9, dx: -6 },
   dodge: { lean: -0.55, ft: 0.7, fs: -0.25, bt: -0.25, bs: 0.35, fa: 0.1, ff: 1.2, ba: -0.8, bf: -0.2, wa: 2.5, dx: -14, dy: 8 },
+  // the dash in: leaning hard into the run, the back leg kicked up, the weapon held low and behind
+  run: { lean: 0.55, ft: 1.25, fs: 0.35, bt: -0.75, bs: -1.6, fa: -0.6, ff: 0.2, ba: 0.9, bf: 1.9, wa: -0.7, dx: 4 },
+  // after the blow: the weapon carried on down and through, weight on the front foot
+  follow: { lean: 0.5, ft: 1.0, fs: 0.35, bt: -0.85, bs: -0.45, fa: 0.75, ff: 0.55, ba: -0.9, bf: -0.5, wa: 0.55, dx: 10, dy: 3 },
+  // landing from the hop back: knees bent
+  land: { lean: 0.2, ft: 0.75, fs: -0.35, bt: -0.55, bs: -0.75, fa: 0.5, ff: 1.4, ba: -0.4, bf: 0.4, wa: 2.2, dy: 6 },
 };
 function poseFor(L) {
   const p = { ...(POSE[L.wt === 'bow' && L.pose === 'wind' ? 'shoot' : L.pose] || POSE.idle) };
-  if (L.wt === 'lance') Object.assign(p, { idle: { fa: 0.55, ff: 1.45, wa: 1.85 }, wind: { lean: -0.08, fa: -0.35, ff: 1.25, wa: 1.66 }, strike: { fa: 1.5, ff: 1.58, wa: 1.6 } }[L.pose] || {});
+  if (L.wt === 'lance') Object.assign(p, { idle: { fa: 0.55, ff: 1.45, wa: 1.85 }, wind: { lean: -0.08, fa: -0.35, ff: 1.25, wa: 1.66 }, strike: { fa: 1.5, ff: 1.58, wa: 1.6 }, run: { fa: 0.2, ff: 1.3, wa: 1.75 }, follow: { fa: 1.35, ff: 1.5, wa: 1.5 } }[L.pose] || {});
   if (L.wt === 'staff') Object.assign(p, { idle: { fa: 0.3, ff: 1.2, wa: 3.05 }, cast: { fa: 1.7, ff: 2.6, wa: 2.85 } }[L.pose] || {});
   if (L.wt === 'tome' && L.pose === 'idle') Object.assign(p, { fa: 0.5, ff: 1.5 });
   if (L.wt === 'bow' && L.pose === 'idle') Object.assign(p, { fa: 0.7, ff: 1.0, wa: 1.57 });
@@ -107,7 +115,7 @@ function poseFor(L) {
 }
 // ---------------------------------------------------------------- the figure
 function draw(g, L) {
-  const p = poseFor(L), m = L.mount;
+  const p = L.params || poseFor(L), m = L.mount;
   const shadowW = m ? 64 : 30; ell(g, 0, -1, shadowW, 6, 0, 'rgba(0,0,0,0.3)', null);
   if (L.pose === 'cast' && (L.wt === 'tome' || L.wt === 'staff')) magicCircle(g, L);
   let hip, legs = true;
@@ -448,7 +456,7 @@ function weapon(g, L, p, hand, layer) {
 }
 // ---------------------------------------------------------------- mounts
 function mount(g, L, p, layer) {
-  const m = L.mount, run = L.pose === 'strike' ? 1 : 0, back = L.pose === 'hit' || L.pose === 'dodge' ? 1 : 0, dx = (p.dx || 0) * 0.6;
+  const m = L.mount, run = ['strike', 'run', 'follow'].includes(L.pose) ? 1 : 0, back = L.pose === 'hit' || L.pose === 'dodge' ? 1 : 0, dx = (p.dx || 0) * 0.6;
   if (m === 'horse') {
     const col = L.look === 'darkknight' ? '#2a2428' : L.look === 'valkyrie' || L.look === 'inquisitor' ? '#ece8e0' : L.look === 'gk' ? '#5a4a3a' : '#8a5a34', dk = sh(col, 0.7), lt = sh(col, 1.3), mane = L.look === 'valkyrie' ? '#e8dcc0' : sh(col, 0.4);
     const bx = dx - 4, by = -60 - run * 4 + back * 2, tilt = run ? -0.12 : back ? 0.1 : 0;
