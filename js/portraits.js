@@ -3,12 +3,13 @@
 // coloured line art and hard-edged cel shading. A portrait is built from its description (hair style and colour,
 // eyes, outfit, extras) and an expression: 平 normal, 笑 smile, 喜 grin, 怒 anger, 悲 sorrow, 驚 surprise, 痛 pain,
 // 冷 cold, 羞 shy, 決 resolve, 閉 eyes closed, 哭 tears. Portraits face right; pass flip to face left.
+import { watercolor } from './paint.js';
 const CACHE = new Map();
-const LASH = '#24161a';
+const LASH = '#3a1e36';
 const shade = (hex, k) => { const n = parseInt(hex.slice(1), 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255, f = (v) => Math.max(0, Math.min(255, Math.round(k > 1 ? v + (255 - v) * (k - 1) : v * k))); return `rgb(${f(r)},${f(g)},${f(b)})`; };
 const mix = (hex, hex2, t) => { const a = parseInt(hex.slice(1), 16), b = parseInt(hex2.slice(1), 16), c = (s) => Math.round(((a >> s) & 255) * (1 - t) + ((b >> s) & 255) * t); return `rgb(${c(16)},${c(8)},${c(0)})`; };
 const lum = (hex) => { const n = parseInt(hex.slice(1), 16); return (((n >> 16) & 255) * 0.3 + ((n >> 8) & 255) * 0.59 + (n & 255) * 0.11) / 255; };
-const line = (hex) => (lum(hex) > 0.7 ? shade(hex, 0.5) : lum(hex) < 0.18 ? '#0e0a0c' : shade(hex, 0.36));
+const line = (hex) => (lum(hex) > 0.7 ? cool(hex, 0.6, 0.25) : lum(hex) < 0.18 ? '#3a2a48' : cool(hex, 0.46, 0.28));
 const rgb = (hex) => { if (hex[0] !== '#') { const m = hex.match(/\d+/g); return m.slice(0, 3).map(Number); } const n = parseInt(hex.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
 const hx = (r, g, b) => '#' + [r, g, b].map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
 const cool = (hex, k = 0.72, t = 0.22) => { const [r, g, b] = rgb(hex); return hx(r * k * (1 - t) + 74 * t, g * k * (1 - t) + 48 * t, b * k * (1 - t) + 128 * t); };
@@ -21,6 +22,7 @@ function layer(g, fn, post) {
 }
 // soft light from the upper left, shadow toward the lower right
 function lightFall(g, x0, y0, x1, y1, a = 0.2, b = 0.28) { const gr = g.createLinearGradient(x0, y0, x1, y1); gr.addColorStop(0, `rgba(255,244,226,${a})`); gr.addColorStop(0.45, 'rgba(255,255,255,0)'); gr.addColorStop(1, `rgba(40,24,80,${b})`); g.fillStyle = gr; g.fillRect(-60, -60, 320, 320); }
+const inkHair = (h) => (lum(h) < 0.2 && Math.max(...rgb(h)) - Math.min(...rgb(h)) < 28 ? hx(...rgb(mix(h, '#3a3a7a', 0.6))) : h);
 const EXPR = { '平': 'n', '笑': 'smile', '喜': 'grin', '怒': 'angry', '悲': 'sad', '驚': 'surprise', '痛': 'pain', '冷': 'cold', '羞': 'shy', '決': 'det', '閉': 'closed', '哭': 'cry' };
 export const exprOf = (e) => EXPR[e] || e || 'n';
 // hair styles: what's behind the head, the fringe, how much volume on top
@@ -53,7 +55,7 @@ export function portrait(p, expr = 'n', size = 192, flip = false) {
   draw(g, p, ex);
   g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-atop';
   const fade = g.createLinearGradient(0, size * 0.62, 0, size); fade.addColorStop(0, 'rgba(30,20,50,0)'); fade.addColorStop(1, 'rgba(30,20,50,0.22)'); g.fillStyle = fade; g.fillRect(0, 0, size, size);
-  g.globalCompositeOperation = 'source-over'; CACHE.set(key, c); return c;
+  g.globalCompositeOperation = 'source-over'; watercolor(c, { scale: size / 192 }); CACHE.set(key, c); return c;
 }
 // ---------------------------------------------------------------- small drawing helpers
 function path(g, pts, close = true) { g.beginPath(); add(g, pts); if (close) g.closePath(); }
@@ -78,8 +80,8 @@ function blob(x, y, rx, ry) { return [[x - rx, y], [x - rx, y - ry * 1.1, x + rx
 // ---------------------------------------------------------------- the whole portrait
 function draw(g, p, ex) {
   const H = HAIR[p.hair] || HAIR.short, f = p.g === 'f', old = p.age >= 50, kid = p.age <= 13;
-  const G = geo(p, f, kid, H), hc = p.hc || '#5a3a20', skin = p.skin || '#f0c8a8';
-  G.f = f; G.kid = kid; G.old = old; G.skinLine = shade(skin, 0.5); G.skinShade = mix(skin, '#c0647a', 0.24); G.skinDeep = mix(skin, '#8a4062', 0.4);
+  const G = geo(p, f, kid, H), hc = inkHair(p.hc || '#5a3a20'), skin = p.skin || '#f0c8a8';
+  G.f = f; G.kid = kid; G.old = old; G.skinLine = mix(skin, '#7a3a5a', 0.55); G.skinShade = mix(skin, '#c0647a', 0.24); G.skinDeep = mix(skin, '#8a4062', 0.4);
   // ---- behind everything: hair falling down the back, hoods and veils
   if (H.hood || p.out === 'hunter' || p.out === 'assassin') hoodBack(g, p, G);
   if (H.veil === 'nun' || p.veil) veilBack(g, p, G, H);
@@ -128,7 +130,7 @@ function face(g, p, G, skin, H, ex) {
   path(g, [[cx - fw + 1, ey - 6], [cx - fw - 6.5, ey - 10, cx - fw - 8, ey + 8, cx - fw + 1, ey + 11]]); ink(g, skin, G.skinLine, 1.1);
   stroke(g, [[cx - fw - 1, ey - 3], [cx - fw - 5, ey - 3, cx - fw - 4.5, ey + 5, cx - fw - 0.5, ey + 6]], G.skinShade, 1.3);
   facePath(g, G); ink(g, skin, G.skinLine, 1.25);
-  g.save(); facePath(g, G); g.clip();
+  g.save(); facePath(g, G); g.clip(); g.filter = `blur(${1.6 * g.getTransform().a}px)`;
   // cel shading: the far cheek, under the fringe, the nose
   path(g, [[cx + fw - 3, ey - 44], [cx + fw + 0.5, ey - 4, cx + fw - 4, ey + 22, cx + 11, chin + 1], [cx + fw + 12, chin + 2], [cx + fw + 12, ey - 44]]); g.fillStyle = G.skinShade; g.globalAlpha = 0.55; g.fill(); g.globalAlpha = 1;
   path(g, [[cx - 20, chin - 10], [cx + 4, chin - 2, cx + 26, chin - 12], [cx + 26, chin + 4], [cx - 20, chin + 4]]); g.fillStyle = G.skinShade; g.globalAlpha = 0.35; g.fill(); g.globalAlpha = 1;
@@ -309,6 +311,7 @@ function frontHair(g, H, p, G, hc, scale = 1) {
   const all = [crown, ...crest, ...sides, ...locks];
   const topY = ey - 24 - 46 * H.vol;
   group(g, all, hc, outl, 1.15, (g) => {
+  g.filter = `blur(${1.5 * g.getTransform().a}px)`;
   const gr = g.createLinearGradient(0, topY - 10, 0, ey + 50); gr.addColorStop(0, warm(hc, 1.1)); gr.addColorStop(0.32, hc); gr.addColorStop(0.62, cool(hc, 0.9, 0.12)); gr.addColorStop(1, warm(hc, 1.12)); g.fillStyle = gr; g.fillRect(cx - 110, topY - 40, 260, 220);
   // shading: the far side, the shade under the crown at the roots of the fringe, and one side of each lock
   g.fillStyle = cool(hc, 0.74); path(g, [[cx + fw + 26, ey - 96], [cx + fw * 0.05, ey - 56, cx + fw * 0.5, hl, cx + fw * 0.7, ey + 60], [cx + fw + 40, ey + 60], [cx + fw + 40, ey - 90]]); g.fill();
@@ -328,6 +331,7 @@ function frontHair(g, H, p, G, hc, scale = 1) {
   // strands: a line down the middle of each lock, and where locks overlap
   for (const s of [...locks, ...sides].filter((_, i) => i % 2 === 0)) { const r = s[0], c1 = [s[1][2], s[1][3]], t = [s[1][4], s[1][5]]; g.strokeStyle = shade(hc, 0.62); g.lineWidth = 0.9; g.beginPath(); g.moveTo((r[0] + t[0] * 2) / 3 + 2, (r[1] + t[1] * 2) / 3 - 6); g.quadraticCurveTo(c1[0] + 4, c1[1] + 6, t[0] + (c1[0] - t[0]) * 0.1, t[1] - 4); g.stroke(); }
   for (const s of locks) { const t = s[1]; g.strokeStyle = outl; g.lineWidth = 1.1; g.beginPath(); g.moveTo(t[4], t[5]); g.quadraticCurveTo(t[2], t[3], (t[2] + t[0]) / 2, (t[3] + t[1]) / 2); g.stroke(); }
+  g.filter = 'none';
   // fine strands through the crown, and a light glint near each lock's tip
   g.lineWidth = 0.7; for (let k = 0; k < 16; k++) { const a = Math.PI * (1.0 + k / 15 * 1.0), x0 = cx + 2 + Math.cos(a) * rx * 1.15, y0 = cyh + Math.sin(a) * ry * 1.15; g.strokeStyle = k % 3 ? cool(hc, 0.7, 0.2) : warm(hc, 1.25); g.globalAlpha = 0.3; g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo(x0 + Math.cos(a) * -6, y0 + 10, x0 + Math.cos(a) * -4 + (k % 2 ? 3 : -3), (y0 + hl) / 2 + 4); g.stroke(); }
   g.globalAlpha = 1; for (const s of locks.filter((_, i) => i % 2)) { const t = [s[1][4], s[1][5]], c1 = [s[1][2], s[1][3]]; g.strokeStyle = warm(hc, 1.3); g.globalAlpha = 0.6; g.lineWidth = 1.2; g.beginPath(); g.moveTo((t[0] * 2 + c1[0]) / 3 - 1, (t[1] * 2 + c1[1]) / 3 - 6); g.lineTo(t[0] - 0.5, t[1] - 3); g.stroke(); g.globalAlpha = 1; }

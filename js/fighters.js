@@ -13,15 +13,16 @@ import { CAST } from './data/cast.js';
 import { TEAM } from './tiles.js';
 import { faceOf } from './faces.js';
 
+import { watercolor } from './paint.js';
 const CACHE = new Map();
-const LASH = '#1e1222';
+const LASH = '#3a1e36';
 const LINE = '#2a1a2e';
 const rgb = (c) => { if (c[0] !== '#') return c.match(/\d+/g).slice(0, 3).map(Number); const n = parseInt(c.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
 const hx = (r, g, b) => '#' + [r, g, b].map((x) => Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, '0')).join('');
 const sh = (c, k) => { const [r, g, b] = rgb(c), f = (x) => (k > 1 ? x + (255 - x) * (k - 1) : x * k); return hx(f(r), f(g), f(b)); };
 const cool = (c, k = 0.72, t = 0.24) => { const [r, g, b] = rgb(c); return hx(r * k * (1 - t) + 70 * t, g * k * (1 - t) + 44 * t, b * k * (1 - t) + 120 * t); };
 const warm = (c, k = 1.3) => { const [r, g, b] = rgb(c); return hx(r + (255 - r) * (k - 1) + 8, g + (255 - g) * (k - 1) + 3, b + (255 - b) * (k - 1) - 6); };
-const inkOf = (c) => (typeof c === 'string' && (c[0] === '#' || c.startsWith('rgb(')) ? cool(c, 0.36, 0.3) : '#241628');
+const inkOf = (c) => (typeof c === 'string' && (c[0] === '#' || c.startsWith('rgb(')) ? cool(c, 0.48, 0.3) : '#3a2a48');
 const v = (a, l = 1) => [Math.sin(a) * l, Math.cos(a) * l]; // a direction measured from straight down, forward is positive
 const add = (p, q) => [p[0] + q[0], p[1] + q[1]];
 const lerp = (p, q, t) => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t];
@@ -47,7 +48,7 @@ export function fighter(u, pose) {
   const own = named && P.oc && u.side !== 'gray' ? [P.oc, sh(P.oc, 0.7), sh(P.oc, 1.3)] : null;
   const hair = P ? P.hair : '';
   const L = { look, T: own || T, P, w, wt, pose, seed, mount: MOUNT[look], heavy: HEAVY[look], helm: HELM[look] && !(P && P.hair && P.hair !== 'helm' && !HEAVY[look]), robe: ROBE[look], hood: HOOD[look] && !(P && !['hood', 'veil'].includes(P.hair) && look === 'archer' && P.out !== 'hunter'), bare: BARE[look] || (P && P.out === 'bare'), cape: CAPE[look] || (named && CAST[u.id].lord),
-    hc: (P && P.hc) || HAIRS[seed % HAIRS.length], ec: (P && P.ec) || EYES[(seed >> 3) % EYES.length], skin: (P && P.skin) || ['#f2cdb0', '#e8bc98', '#d8a880', '#f6dcc4'][seed % 4], f: P ? P.g === 'f' : !!FEMALE[look],
+    hc: inkHair((P && P.hc) || HAIRS[seed % HAIRS.length]), ec: (P && P.ec) || EYES[(seed >> 3) % EYES.length], skin: (P && P.skin) || ['#f2cdb0', '#e8bc98', '#d8a880', '#f6dcc4'][seed % 4], f: P ? P.g === 'f' : !!FEMALE[look],
     hair: hair || (FEMALE[look] ? ['long', 'pony', 'bob'][seed % 3] : ['short', 'spiky', 'messy', 'short'][seed % 4]),
     beard: P && P.beard, longBeard: P && (P.longBeard || P.braidBeard), veil: P && (P.hair === 'veil' || P.veil), scarf: P && P.scarf, hat: !named && HAT[look] && P.g !== 'f',
     trim: P && P.ac ? P.ac : k.tier === 2 ? '#e8c060' : sh(T[1], 0.8), tier: k.tier || 1 };
@@ -57,7 +58,7 @@ export function fighter(u, pose) {
   const lt = g.createLinearGradient(0, 120, 0, 470); lt.addColorStop(0, 'rgba(255,240,220,0.14)'); lt.addColorStop(0.5, 'rgba(255,255,255,0)'); lt.addColorStop(1, 'rgba(50,24,90,0.22)'); g.fillStyle = lt; g.fillRect(0, 0, 520, 520);
   const fr = g.createLinearGradient(140, 0, 380, 0); fr.addColorStop(0, 'rgba(40,20,80,0.12)'); fr.addColorStop(0.6, 'rgba(255,255,255,0)'); fr.addColorStop(1, 'rgba(255,236,200,0.14)'); g.fillStyle = fr; g.fillRect(0, 0, 520, 520);
   g.globalCompositeOperation = 'source-over';
-  CACHE.set(key, c); return c;
+  watercolor(c, { bloom: 0.26, grain: 0.26, scale: 1 }); CACHE.set(key, c); return c;
 }
 // ---------------------------------------------------------------- shapes
 function pathOf(g, pts) { g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (const p of pts.slice(1)) { if (p.length === 4) g.quadraticCurveTo(p[0], p[1], p[2], p[3]); else if (p.length === 6) g.bezierCurveTo(p[0], p[1], p[2], p[3], p[4], p[5]); else g.lineTo(p[0], p[1]); } g.closePath(); }
@@ -364,6 +365,7 @@ function hairOf(g, L) {
   });
   if (L.P && L.P.ahoge) { g.strokeStyle = inkOf(hc); g.lineWidth = 1.6; g.beginPath(); g.moveTo(1, -17); g.quadraticCurveTo(4, -26, 10, -24); g.stroke(); }
 }
+const inkHair = (h) => (lum(h) < 0.2 && Math.max(...rgb(h)) - Math.min(...rgb(h)) < 28 ? hx(...rgb(h).map((v, i) => v * 0.4 + [58, 58, 122][i] * 0.6)) : h);
 const lum = (c) => { const [r, g, b] = rgb(c); return (r * 0.3 + g * 0.59 + b * 0.11) / 255; };
 function helm(g, L) {
   // an open-faced helm: a lit dome, a brim over the brow, a cheek guard, rivets, a crest and a plume for officers

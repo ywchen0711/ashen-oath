@@ -2,6 +2,7 @@
 // mountains fading into haze, trees built from lit and shaded leaf clusters, timber-framed houses and stone keeps,
 // rooms with perspective floors, light falling through windows, and a colour grade over it all. 960×540, painted
 // once from a fixed seed and kept.
+import { watercolor } from './paint.js';
 const CACHE = {};
 const W = 960, H = 540;
 let g, R;
@@ -495,5 +496,6 @@ export function backdrop(id) {
   let seed = 7; for (const ch of String(id)) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0; R = rng(seed);
   (SCENES[id] || (() => sky([[0, '#14141a'], [1, '#050508']])))();
   vignette(0.5);
+  watercolor(c, { sat: 0.84, bloom: 0.34, grain: 0.42, scale: 1.4, wash: ['rgba(255,222,236,0.22)', 'rgba(200,190,255,0.22)'] });
   CACHE[id] = c; return c;
 }
