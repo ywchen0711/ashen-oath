@@ -60,7 +60,7 @@ export function fighter(u, pose) {
   const lt = g.createLinearGradient(0, 120, 0, 470); lt.addColorStop(0, 'rgba(255,240,220,0.14)'); lt.addColorStop(0.5, 'rgba(255,255,255,0)'); lt.addColorStop(1, 'rgba(50,24,90,0.22)'); g.fillStyle = lt; g.fillRect(0, 0, 520, 520);
   const fr = g.createLinearGradient(140, 0, 380, 0); fr.addColorStop(0, 'rgba(40,20,80,0.12)'); fr.addColorStop(0.6, 'rgba(255,255,255,0)'); fr.addColorStop(1, 'rgba(255,236,200,0.14)'); g.fillStyle = fr; g.fillRect(0, 0, 520, 520);
   g.globalCompositeOperation = 'source-over';
-  watercolor(c, { sat: 1, bright: 1.02, bloom: 0.2, grain: 0.2, lift: 0.07, scale: 1 }); CACHE.set(key, c); return c;
+  watercolor(c, { sat: 1, bright: 1.02, bloom: 0.2, grain: 0.2, lift: 0.07, scale: 1 }); c.hand = L.hand; c.mounted = !!L.mount; CACHE.set(key, c); return c;
 }
 // ---------------------------------------------------------------- shapes
 function pathOf(g, pts) { g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (const p of pts.slice(1)) { if (p.length === 4) g.quadraticCurveTo(p[0], p[1], p[2], p[3]); else if (p.length === 6) g.bezierCurveTo(p[0], p[1], p[2], p[3], p[4], p[5]); else g.lineTo(p[0], p[1]); } g.closePath(); }
@@ -120,7 +120,7 @@ function poseFor(L) {
 // ---------------------------------------------------------------- the figure
 function draw(g, L) {
   const p = L.params || poseFor(L), m = L.mount;
-  const shadowW = m ? 64 : 30; ell(g, 0, -1, shadowW, 6, 0, 'rgba(0,0,0,0.3)', null);
+  // (the shadow is drawn by the battle scene, on the ground, so it stays there when they jump)
   if (L.pose === 'cast' && (L.wt === 'tome' || L.wt === 'staff')) magicCircle(g, L);
   let hip, legs = true;
   if (m) { const seat = mount(g, L, p, 'back'); hip = seat; legs = false; }
@@ -202,7 +202,7 @@ function person(g, L, p, hip, onFoot) {
   if (!L.bare && !L.heavy) { const cuff = lerp(fe, fh, 0.78); seg(g, cuff, lerp(fe, fh, 0.95), 3.9, 3.7, L.robe ? trim : glove); }
   if (L.robe && !L.bare) poly(g, [add(fe, v(p.ff + 1.57, 4.8)), add(fe, v(p.ff - 1.57, 4.8)), add(fh, v(p.ff - 1.8, 8)), add(fh, v(p.ff + 1.8, 8))], cloth, undefined, 1);
   pauldron(g, L, sho, lean, trim);
-  ell(g, fh[0], fh[1], 3.8, 3.8, 0, L.bare ? skin : L.heavy ? '#b4bccc' : glove);
+  ell(g, fh[0], fh[1], 3.8, 3.8, 0, L.bare ? skin : L.heavy ? '#b4bccc' : glove); L.hand = fh;
   weapon(g, L, p, fh, 'front');
 }
 function leg(g, hip, k, a, pants, boot, L, far) {

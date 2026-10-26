@@ -13,6 +13,7 @@ import { ITEMS } from './data/items.js';
 import { terrainAt } from './data/terrain.js';
 import { recruit, equipped, weapons, staves, rangeOf, canUse, canPromote, promote, setUid, distance, hasSkill, cls, equip } from './rules.js';
 import { portrait } from './portraits.js';
+import { journal } from './journal.js';
 import { sound } from './sound.js';
 
 const $ = (id) => document.getElementById(id);
@@ -103,7 +104,7 @@ async function prep(ch) {
   for (;;) {
     const p = el('div', 'prep'); ui.root.appendChild(p);
     const sup = availableSupports();
-    p.innerHTML = `<div class="ph"><b>${esc(ch.no)}　${esc(ch.title)}</b><span>出擊 <em id="pc">${pick.length}</em> / ${slots}</span><span class="gold">💰 ${S.gold}</span></div><div class="pgoal">勝利條件：${esc(ch.goal.text)}</div><div class="plist"></div><div class="pbtns"><button data-a="start" class="hot">開始戰鬥</button><button data-a="items">道具與倉庫</button>${ch.shop ? '<button data-a="shop">商店</button>' : ''}<button data-a="sup">支援對話${sup.length ? ` <em>${sup.length}</em>` : ''}</button><button data-a="save">存檔</button><button data-a="title">標題</button></div>`;
+    p.innerHTML = `<div class="ph"><b>${esc(ch.no)}　${esc(ch.title)}</b><span>出擊 <em id="pc">${pick.length}</em> / ${slots}</span><span class="gold">💰 ${S.gold}</span></div><div class="pgoal">勝利條件：${esc(ch.goal.text)}</div><div class="plist"></div><div class="pbtns"><button data-a="start" class="hot">開始戰鬥</button><button data-a="items">道具與倉庫</button>${ch.shop ? '<button data-a="shop">商店</button>' : ''}<button data-a="sup">支援對話${sup.length ? ` <em>${sup.length}</em>` : ''}</button><button data-a="log">紀錄</button><button data-a="save">存檔</button><button data-a="title">標題</button></div>`;
     const list = p.querySelector('.plist');
     for (const u of avail) { const c = CAST[u.id], d = el('button', 'pu' + (pick.includes(u.uid) ? ' on' : '') + (forced.has(u.id) ? ' lock' : '')); d.innerHTML = `<div class="pp"></div><b>${esc(u.name)}</b><small>${esc(CLASSES[u.cls].name)} Lv${u.lv}</small>`; if (c) d.querySelector('.pp').appendChild(portrait(c.p, '平', 72)); d.onclick = () => { if (forced.has(u.id)) return; if (pick.includes(u.uid)) pick = pick.filter((x) => x !== u.uid); else if (pick.length < slots) pick.push(u.uid); d.classList.toggle('on', pick.includes(u.uid)); p.querySelector('#pc').textContent = pick.length; }; d.oncontextmenu = (e) => { e.preventDefault(); ui.sheet(u); }; list.appendChild(d); }
     const a = await new Promise((r) => p.querySelectorAll('[data-a]').forEach((b) => b.onclick = () => r(b.dataset.a)));
@@ -112,6 +113,7 @@ async function prep(ch) {
     if (a === 'items') await itemsScreen();
     if (a === 'shop') await shopScreen(ch.shop);
     if (a === 'sup') await supportScreen();
+    if (a === 'log') await journal(ui, S, el);
     if (a === 'save') { const n = await slotMenu('存檔到'); if (n != null) { save(n); await ui.note('已存檔'); } }
     if (a === 'title') { if (await ui.confirm('回到標題？未存檔的進度會遺失。')) return 'title'; }
   }
@@ -260,7 +262,7 @@ function playerPhase() {
     let targetPick = null, targetCancel = null;
     const trade = async (u, t) => { for (;;) { const r = await ui.menu([...u.items.map((i, k) => ({ id: 'a' + k, label: `${u.name}：${ITEMS[i.id].name}` })), ...t.items.map((i, k) => ({ id: 'b' + k, label: `${t.name}：${ITEMS[i.id].name}` })), { id: null, label: '完成' }], innerWidth / 2 - 150, 80, '交換（選一件給對方）'); if (r == null) return; const from = r[0] === 'a' ? u : t, to = from === u ? t : u, k = +r.slice(1); if (to.items.length >= 5) { await ui.note('對方拿不下了'); continue; } to.items.push(from.items.splice(k, 1)[0]); } };
     const itemMenu = async (u) => { const r = await ui.menu([...u.items.map((i, k) => ({ id: k, label: `${ITEMS[i.id].name} ${i.uses}/${ITEMS[i.id].uses}${equipped(u) === i ? '　E' : ''}` })), { id: null, label: '返回' }], innerWidth / 2 - 140, 100, '道具'); if (r == null) return; const it = u.items[r], d = ITEMS[it.id]; const a = await ui.menu([{ id: 'eq', label: '裝備', off: !(d.kind === 'weapon' && canUse(u, it.id)) }, { id: 'use', label: '使用', off: !(d.use === 'heal' && u.hp < u.stats.hp || d.use === 'boost' || d.use === 'torch' || d.use === 'gold') }, { id: 'drop', label: '丟棄' }, { id: null, label: '返回' }], innerWidth / 2 - 100, 140, d.name); if (a === 'eq') equip(u, it); if (a === 'use') { const msg = B.useItem(u, it); sound.play('heal'); await ui.note(msg); return 'acted'; } if (a === 'drop' && await ui.confirm(`丟掉「${d.name}」？`)) u.items.splice(r, 1); };
-    const mapMenu = async () => { const r = await ui.menu([{ id: 'end', label: '結束回合' }, { id: 'units', label: '全員資訊' }, { id: 'danger', label: `危險範圍：${view.dangerOn ? '開' : '關'}` }, { id: 'goal', label: '勝利條件' }, { id: 'opt', label: '設定' }, { id: 'title', label: '中斷並回到標題' }], innerWidth / 2 - 120, innerHeight / 2 - 120); if (r === 'end') { if (B.side('player').some((u) => !u.acted) && !(await ui.confirm('還有人沒行動，要結束回合嗎？'))) return; for (const u of B.side('player')) B.wait(u); return end(); } if (r === 'danger') { view.dangerOn = !view.dangerOn; view.over = sets(); } if (r === 'goal') await ui.say([['-', `勝利條件：${B.goal.text}`], ['-', `敗北條件：${B.ch.loseText || '主角倒下'}`]]); if (r === 'units') await roster(); if (r === 'opt') await options(); if (r === 'title') { if (await ui.confirm('中斷戰鬥並回到標題？（下次可從這回合開始繼續）')) { suspend(); cleanup(); stopLoop(); title(); } } };
+    const mapMenu = async () => { const r = await ui.menu([{ id: 'end', label: '結束回合' }, { id: 'units', label: '全員資訊' }, { id: 'log', label: '紀錄' }, { id: 'danger', label: `危險範圍：${view.dangerOn ? '開' : '關'}` }, { id: 'goal', label: '勝利條件' }, { id: 'opt', label: '設定' }, { id: 'title', label: '中斷並回到標題' }], innerWidth / 2 - 120, innerHeight / 2 - 120); if (r === 'end') { if (B.side('player').some((u) => !u.acted) && !(await ui.confirm('還有人沒行動，要結束回合嗎？'))) return; for (const u of B.side('player')) B.wait(u); return end(); } if (r === 'danger') { view.dangerOn = !view.dangerOn; view.over = sets(); } if (r === 'goal') await ui.say([['-', `勝利條件：${B.goal.text}`], ['-', `敗北條件：${B.ch.loseText || '主角倒下'}`]]); if (r === 'units') await roster(); if (r === 'log') await journal(ui, S, el); if (r === 'opt') await options(); if (r === 'title') { if (await ui.confirm('中斷戰鬥並回到標題？（下次可從這回合開始繼續）')) { suspend(); cleanup(); stopLoop(); title(); } } };
     const roster = async () => { const t = await ui.roster(B, (u) => !B.ch.fog || (view.vision && view.vision.has(u.y * F.W + u.x))); if (t) { view.cursor = { x: t.x, y: t.y }; view.follow(t.x, t.y); hover(); } };
     const danger = () => { const s = new Set(); for (const u of B.side('enemy')) for (const k of F.threat(u, B.alive).hits) s.add(k); return s; };
     // clicking a square
@@ -303,7 +305,8 @@ function playerPhase() {
       if (moved) { e.preventDefault(); view.follow(c.x, c.y); hover(); sound.play('tick'); }
       if (['Enter', 'KeyZ', 'Space'].includes(e.code)) { e.preventDefault(); click(c.x, c.y, false); }
       if (['Escape', 'KeyX'].includes(e.code)) click(c.x, c.y, true);
-      if (e.code === 'KeyL') { busy = true; roster().then(() => { busy = false; }); }
+      if (e.code === 'KeyJ') { busy = true; journal(ui, S, el).then(() => setTimeout(() => { busy = false; }, 0)); }
+      if (e.code === 'KeyL') { busy = true; roster().then(() => setTimeout(() => { busy = false; }, 0)); }
       if (e.code === 'KeyR') { const u = B.at(c.x, c.y); if (u) { busy = true; ui.sheet(u, B).then(() => { busy = false; }); } }
       if (e.code === 'KeyD') { view.dangerOn = !view.dangerOn; view.over = { ...view.over, ...sets() }; if (!view.dangerOn) delete view.over.danger; }
       if (e.code === 'KeyA' || e.code === 'Tab') { e.preventDefault(); const list = B.side('player').filter((u) => !u.acted); if (list.length) { const i = (list.findIndex((u) => u.x === c.x && u.y === c.y) + 1) % list.length; view.cursor = { x: list[i].x, y: list[i].y }; view.follow(list[i].x, list[i].y); hover(); } }

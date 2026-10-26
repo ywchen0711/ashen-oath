@@ -98,6 +98,7 @@ export class BattleFX {
       g.imageSmoothingEnabled = true;
       const now = performance.now() / 1000;
       for (const d of dust) { const k = d.t / d.life; g.fillStyle = `rgba(230,220,200,${0.45 * (1 - k)})`; g.beginPath(); g.ellipse(d.x + d.vx * d.t, d.y - d.t * 14, d.r * (0.6 + k), d.r * 0.55 * (0.6 + k), 0, 0, 7); g.fill(); }
+      for (const u of [left, right]) { const F2 = fig[u.uid], sd = u === right ? 1 : -1; if (F2.alpha <= 0) continue; const m = fighter(u, 'idle').mounted, k = Math.max(0.5, 1 + F2.dy / 60); g.fillStyle = `rgba(20,10,20,${0.32 * F2.alpha * k})`; g.beginPath(); g.ellipse(sd * 185 - sd * F2.dx * 1.06, 136, (m ? 120 : 58) * k, 11 * k, 0, 0, 7); g.fill(); }
       for (const u of [left, right]) { const F2 = fig[u.uid], sd = u === right ? 1 : -1; if (F2.alpha <= 0) continue; const img = fighter(u, F2.pose);
         const at = (dx, dy, a, sc = 1) => { g.save(); g.globalAlpha = a; g.translate(sd * 185 - sd * dx * 1.06, 138 + dy); g.scale(-sd * 1, 1 * sc); g.drawImage(img, -260, -460); g.restore(); };
         F2.trail.forEach((t, k) => { g.save(); g.filter = 'saturate(0.4) brightness(1.4)'; at(t[0], t[1], 0.08 + k * 0.07); g.restore(); });
@@ -173,9 +174,10 @@ export class BattleFX {
         smears.push({ x: sdU * 175 - sdU * F2.dx - sdU * 22, y: -20, f: -sdU, t: 0, c: s.crit ? '255,210,110' : '190,220,255' });
       } else {
         await blend(F2, 'idle', w.type === 'bow' ? 'shoot' : 'cast', 220);
-        const x0 = (u === right ? 1 : -1) * 120, x1 = sdO * 160; proj = { x: x0, y: 30, x0, x1, k: 0, kind: w.type === 'bow' ? 'arrow' : w.type === 'dark' ? 'dark' : w.type === 'light' ? 'light' : w.name === '雷擊' || w.name === '雷霆' ? 'thunder' : w.eff && w.eff.includes('fly') ? 'wind' : 'fire', trail: [] };
-        await wait(w.type === 'bow' ? 220 : 320, (k) => { proj.k = k; proj.x = x0 + (x1 - x0) * k; proj.y = 30 - Math.sin(k * Math.PI) * (w.type === 'bow' ? 30 : 10); proj.trail.push([proj.x, proj.y]); if (proj.trail.length > 14) proj.trail.shift(); });
-        if (w.type !== 'bow') { const col = { dark: '200,130,255', light: '255,240,170', thunder: '170,200,255', wind: '150,240,180', fire: '255,160,70' }[proj.kind]; for (let q = 0; q < 26; q++) { const a = Math.random() * 6.28, v = 60 + Math.random() * 160; motes.push({ x: x1, y: 20, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 40, r: 3 + Math.random() * 4, t: 0, life: 0.5 + Math.random() * 0.3, c: col }); } }
+        const hi = fighter(u, F2.pose), hd = hi.hand || [20, -95], tgt = fighter(o, 'idle'), th = tgt.mounted ? -150 : -105, x0 = sdU * 185 - sdU * F2.dx * 1.06 - sdU * hd[0] * 2, y0 = 138 + F2.dy + hd[1] * 2, x1 = sdO * 185, y1 = 138 + th, arc = w.type === 'bow' ? Math.min(50, Math.abs(x1 - x0) * 0.09) : 10; proj = { x: x0, y: y0, x0, x1, y0, y1, arc, k: 0, kind: w.type === 'bow' ? 'arrow' : w.type === 'dark' ? 'dark' : w.type === 'light' ? 'light' : w.name === '雷擊' || w.name === '雷霆' ? 'thunder' : w.eff && w.eff.includes('fly') ? 'wind' : 'fire', trail: [] };
+        if (w.type === 'bow') F2.pose = 'idle>shoot@0.5'; // the string snaps forward as the arrow goes
+        await wait(w.type === 'bow' ? 240 : 320, (k) => { proj.k = k; proj.x = x0 + (x1 - x0) * k; proj.y = y0 + (y1 - y0) * k - Math.sin(k * Math.PI) * arc; proj.ang = Math.atan2((y1 - y0) - Math.cos(k * Math.PI) * Math.PI * arc, x1 - x0); proj.trail.push([proj.x, proj.y]); if (proj.trail.length > 14) proj.trail.shift(); });
+        if (w.type !== 'bow') { const col = { dark: '200,130,255', light: '255,240,170', thunder: '170,200,255', wind: '150,240,180', fire: '255,160,70' }[proj.kind]; for (let q = 0; q < 26; q++) { const a = Math.random() * 6.28, v = 60 + Math.random() * 160; motes.push({ x: x1, y: y1, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 40, r: 3 + Math.random() * 4, t: 0, life: 0.5 + Math.random() * 0.3, c: col }); } }
         proj = null;
       }
       if (s.hit) {
@@ -205,7 +207,7 @@ export class BattleFX {
 // arrows and spells in flight
 function drawProj(g, p) {
   const dir = Math.sign(p.x1 - p.x0) || 1;
-  if (p.kind === 'arrow') { g.save(); g.translate(p.x, p.y); g.rotate(dir > 0 ? Math.cos(p.k * Math.PI) * -0.35 : Math.PI + Math.cos(p.k * Math.PI) * 0.35); g.strokeStyle = '#6a4a2a'; g.lineWidth = 3; g.beginPath(); g.moveTo(-34, 0); g.lineTo(10, 0); g.stroke(); g.fillStyle = '#d8dce4'; g.beginPath(); g.moveTo(10, -5); g.lineTo(22, 0); g.lineTo(10, 5); g.fill(); g.fillStyle = '#e8e0d0'; for (const s of [-1, 1]) { g.beginPath(); g.moveTo(-34, 0); g.lineTo(-26, s * 6); g.lineTo(-20, 0); g.fill(); } g.restore(); return; }
+  if (p.kind === 'arrow') { g.save(); g.strokeStyle = 'rgba(255,255,255,0.35)'; g.lineWidth = 2; g.beginPath(); p.trail.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.stroke(); g.translate(p.x, p.y); g.rotate(p.ang ?? (dir > 0 ? 0 : Math.PI)); g.strokeStyle = '#6a4a2a'; g.lineWidth = 3; g.beginPath(); g.moveTo(-34, 0); g.lineTo(10, 0); g.stroke(); g.fillStyle = '#d8dce4'; g.beginPath(); g.moveTo(10, -5); g.lineTo(22, 0); g.lineTo(10, 5); g.fill(); g.fillStyle = '#e8e0d0'; for (const s of [-1, 1]) { g.beginPath(); g.moveTo(-34, 0); g.lineTo(-26, s * 6); g.lineTo(-20, 0); g.fill(); } g.restore(); return; }
   g.save(); g.globalCompositeOperation = 'lighter';
   const col = { fire: ['255,140,50', '255,230,150'], thunder: ['150,190,255', '240,250,255'], light: ['255,240,170', '255,255,240'], dark: ['170,80,230', '230,190,255'], wind: ['120,230,160', '230,255,240'] }[p.kind];
   if (p.kind === 'thunder') { g.strokeStyle = `rgba(${col[1]},0.95)`; g.lineWidth = 5; g.beginPath(); let y = -230; g.moveTo(p.x1, y); while (y < 30) { y += 30; g.lineTo(p.x1 + (Math.random() - 0.5) * 40, y); } g.stroke(); g.strokeStyle = `rgba(${col[0]},0.6)`; g.lineWidth = 14; g.stroke(); }
