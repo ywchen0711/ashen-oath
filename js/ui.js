@@ -1,6 +1,7 @@
 // The windows: dialogue with portraits (who speaks stands bright, the other listens in shadow, words appear as
 // they are spoken), menus, the battle forecast, a unit's status, the phase banners, the level-up.
 import { portrait } from './portraits.js';
+import { faceOf } from './faces.js';
 import { backdrop } from './bgs.js';
 import { CAST } from './data/cast.js';
 import { CLASSES, STAT_NAME, STATS, SKILLS } from './data/classes.js';
@@ -84,7 +85,7 @@ export class UI {
   // ---------------------------------------------------------------- a unit's sheet
   sheet(u, B) {
     const k = cls(u), c = CAST[u.id], panel = el('div', 'sheet');
-    const port = c ? portrait(c.p, '平', 240) : null;
+    const port = portrait(faceOf(u), '平', 240);
     const bars = STATS.filter((s) => s !== 'hp').map((s) => `<div class="st"><span>${STAT_NAME[s]}</span><b>${u.stats[s]}</b><i><em style="width:${Math.min(100, u.stats[s] / k.cap[s] * 100)}%"></em></i></div>`).join('');
     const items = u.items.map((i) => { const d = ITEMS[i.id], usable = d.kind === 'item' || canUse(u, i.id); return `<div class="it ${usable ? '' : 'off'} ${equipped(u) === i ? 'eq' : ''}"><span>${d.kind === 'weapon' ? WEAPON_NAME[d.type] : d.kind === 'staff' ? '杖' : '物'}</span>${esc(d.name)}<b>${i.uses}/${d.uses}</b></div>`; }).join('') || '<div class="it off">—</div>';
     const skills = [...k.skills, ...(u.personal && !k.skills.includes(u.personal) ? [u.personal] : [])].map((s) => SKILLS[s] ? `<div class="sk"><b>${SKILLS[s].name}</b> ${esc(SKILLS[s].desc)}</div>` : '').join('');
@@ -98,7 +99,7 @@ export class UI {
   hover(u, ter, B) {
     let h = $('hov'); if (!h) { h = el('div', ''); h.id = 'hov'; this.root.appendChild(h); }
     let t = $('ter'); if (!t) { t = el('div', ''); t.id = 'ter'; this.root.appendChild(t); }
-    if (u) { const c = CAST[u.id], w = equipped(u); h.className = 'hov ' + u.side; h.innerHTML = `<div class="hpic"></div><div><b>${esc(u.name)}</b><small>${esc(CLASSES[u.cls].name)} Lv${u.lv}</small><div class="hhp">HP ${u.hp}/${u.stats.hp}<i><em style="width:${u.hp / u.stats.hp * 100}%"></em></i></div>${w ? `<small>${esc(ITEMS[w.id].name)}</small>` : ''}</div>`; if (c) h.querySelector('.hpic').appendChild(portrait(c.p, '平', 64)); h.hidden = false; } else h.hidden = true;
+    if (u) { const c = CAST[u.id], w = equipped(u); h.className = 'hov ' + u.side; h.innerHTML = `<div class="hpic"></div><div><b>${esc(u.name)}</b><small>${esc(CLASSES[u.cls].name)} Lv${u.lv}</small><div class="hhp">HP ${u.hp}/${u.stats.hp}<i><em style="width:${u.hp / u.stats.hp * 100}%"></em></i></div>${w ? `<small>${esc(ITEMS[w.id].name)}</small>` : ''}</div>`; h.querySelector('.hpic').appendChild(portrait(faceOf(u), '平', 64)); h.hidden = false; } else h.hidden = true;
     if (ter) { t.innerHTML = `<b>${esc(ter.name)}</b><span>守 ${ter.def}</span><span>避 ${ter.avo}</span>${ter.heal ? `<span>回 ${ter.heal}%</span>` : ''}`; t.hidden = false; } else t.hidden = true;
   }
   goalBox(text, turn, extra) { let g = $('goal'); if (!g) { g = el('div', ''); g.id = 'goal'; this.root.appendChild(g); } g.innerHTML = `<b>${esc(text)}</b><span>第 ${turn} 回合${extra ? ' · ' + esc(extra) : ''}</span>`; }

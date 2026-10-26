@@ -6,7 +6,7 @@ import { terrainAt } from './data/terrain.js';
 import { fighter } from './fighters.js';
 import { backdrop } from './bgs.js';
 import { portrait } from './portraits.js';
-import { CAST } from './data/cast.js';
+import { faceOf } from './faces.js';
 import { CLASSES } from './data/classes.js';
 // the painted scene behind a fight, a touch out of focus and brighter, so the fighters stand out against it
 const SOFT = new Map();
@@ -105,10 +105,9 @@ export class BattleFX {
         g.strokeStyle = '#3a2a10'; g.lineWidth = 6; g.strokeRect(x0, y0, 440, 110); g.strokeStyle = '#e8c870'; g.lineWidth = 2.5; g.strokeRect(x0, y0, 440, 110); g.strokeStyle = 'rgba(255,240,200,0.45)'; g.lineWidth = 1; g.strokeRect(x0 + 5, y0 + 5, 430, 100);
         for (const [cx2, cy2] of [[x0, y0], [x0 + 440, y0], [x0, y0 + 110], [x0 + 440, y0 + 110]]) { g.fillStyle = '#e8c870'; g.beginPath(); g.moveTo(cx2, cy2 - 7); g.lineTo(cx2 + 7, cy2); g.lineTo(cx2, cy2 + 7); g.lineTo(cx2 - 7, cy2); g.closePath(); g.fill(); g.strokeStyle = '#3a2a10'; g.lineWidth = 1.5; g.stroke(); }
         // the face, its expression following the fight
-        const c = CAST[u.id], px = x0 + 58, py = y0 + 55;
+        const face = faceOf(u), px = x0 + 58, py = y0 + 55;
         g.save(); g.beginPath(); g.arc(px, py, 44, 0, 7); const fg = g.createRadialGradient(px, py - 10, 4, px, py, 46); fg.addColorStop(0, base[2]); fg.addColorStop(1, base[1]); g.fillStyle = fg; g.fill(); g.clip();
-        if (c) { const ex = hp[u.uid] <= 0 ? '閉' : F2.pose === 'hit' ? '痛' : F2.pose === 'strike' || F2.pose === 'wind' || F2.pose === 'cast' || F2.pose === 'shoot' ? '決' : '平'; g.drawImage(portrait(c.p, ex, 192, sd > 0), px - 52, py - 52, 104, 104); }
-        else { g.fillStyle = 'rgba(255,255,255,0.85)'; g.font = 'bold 22px "Noto Serif TC", serif'; g.textAlign = 'center'; g.fillText(CLASSES[u.cls].name.slice(0, 2), px, py + 8); }
+        { const ex = hp[u.uid] <= 0 ? '閉' : F2.pose === 'hit' ? '痛' : F2.pose === 'strike' || F2.pose === 'wind' || F2.pose === 'cast' || F2.pose === 'shoot' ? '決' : '平'; g.drawImage(portrait(face, ex, 192, sd > 0), px - 52, py - 52, 104, 104); }
         g.restore(); g.strokeStyle = '#3a2a10'; g.lineWidth = 5; g.beginPath(); g.arc(px, py, 44, 0, 7); g.stroke(); g.strokeStyle = '#e8c870'; g.lineWidth = 2; g.stroke();
         // name and weapon
         g.textAlign = 'left'; g.font = 'bold 28px "Noto Serif TC", serif'; g.lineWidth = 4; g.strokeStyle = 'rgba(10,5,20,0.6)'; g.strokeText(u.name, x0 + 114, y0 + 36); g.fillStyle = '#ffffff'; g.fillText(u.name, x0 + 114, y0 + 36);
