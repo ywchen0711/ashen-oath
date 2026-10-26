@@ -95,6 +95,33 @@ export class UI {
     this.root.appendChild(panel);
     return new Promise((res) => { const close = () => { off(); panel.remove(); res(); }; panel.querySelector('.sx').onclick = close; panel.onclick = (e) => { if (e.target === panel) close(); }; const off = this.onKey((e) => { if (['Escape', 'KeyX', 'KeyR', 'Enter', 'KeyZ'].includes(e.code)) close(); }); });
   }
+  // everyone on the field at once: a tab for each side, a row for each soldier (face, class, level, HP, every stat,
+  // the weapon in hand), sorted by any column; a row opens the full sheet or takes the cursor to them
+  roster(B, visible = () => true) {
+    const SIDES = [['player', '我軍'], ['ally', '友軍'], ['enemy', '敵軍'], ['all', '全部']], COLS = [['name', '名字'], ['lv', 'Lv'], ['hp', 'HP'], ...['str', 'mag', 'skl', 'spd', 'lck', 'def', 'res', 'mov'].map((k) => [k, STAT_NAME[k].slice(0, 2)])];
+    let side = 'player', key = 'side', dir = 1, pick = null;
+    const panel = el('div', 'roster'); this.root.appendChild(panel);
+    const units = () => B.alive.filter((u) => !u.rescuedBy && (side === 'all' || u.side === side || (side === 'ally' && u.side === 'other')) && (u.side !== 'enemy' || visible(u)));
+    const val = (u, k) => (k === 'name' ? u.name : k === 'lv' ? u.lv + (cls(u).tier === 2 ? 20 : 0) : k === 'hp' ? u.hp : k === 'side' ? ['player', 'ally', 'other', 'enemy'].indexOf(u.side) * 1000 - (u.lord ? 500 : 0) + (u.boss ? -100 : 0) : u.stats[k]);
+    const draw = () => {
+      const list = units().sort((a, b) => { const x = val(a, key), y = val(b, key); return (typeof x === 'string' ? x.localeCompare(y) : x - y) * dir || a.uid - b.uid; });
+      const count = (s) => B.alive.filter((u) => !u.rescuedBy && (s === 'all' || u.side === s || (s === 'ally' && u.side === 'other')) && (u.side !== 'enemy' || visible(u))).length;
+      panel.innerHTML = `<div class="rwin"><div class="rhead"><b>全員資訊</b><span class="rtabs">${SIDES.map(([s, n]) => `<button class="rtab ${s === side ? 'on' : ''} ${s}" data-s="${s}">${n} <small>${count(s)}</small></button>`).join('')}</span><button class="sx">✕</button></div>
+        <div class="rtable"><table><thead><tr><th></th>${COLS.map(([k, n]) => `<th data-k="${k}" class="${key === k ? 'on' : ''}">${n}${key === k ? (dir > 0 ? '▲' : '▼') : ''}</th>`).join('')}<th>武器</th></tr></thead><tbody>
+        ${list.map((u) => { const w = equipped(u), k = cls(u), hpk = u.hp / u.stats.hp; return `<tr data-u="${u.uid}" class="${u.side} ${u.acted && u.side === 'player' && B.phase === 'player' ? 'done' : ''}"><td class="rf"><i></i></td><td class="rn"><b>${esc(u.name)}${u.boss ? ' <em>將</em>' : ''}${u.lord ? ' <em>主</em>' : ''}</b><small>${esc(k.name)}</small></td><td>${u.lv}</td><td class="rh"><span>${u.hp}/${u.stats.hp}</span><i><em style="width:${hpk * 100}%;background:${hpk > 0.5 ? '#5ad85a' : hpk > 0.25 ? '#e8c840' : '#e84a3a'}"></em></i></td>${['str', 'mag', 'skl', 'spd', 'lck', 'def', 'res', 'mov'].map((s) => `<td>${u.stats[s]}</td>`).join('')}<td class="rw">${w ? esc(ITEMS[w.id].name) : '—'}</td></tr>`; }).join('') || `<tr><td colspan="13" class="rnone">沒有人</td></tr>`}
+        </tbody></table></div><div class="rfoot">點一下看詳細資料 · 點欄位排序 · 快捷鍵 L</div></div>`;
+      panel.querySelectorAll('tr[data-u]').forEach((tr) => { const u = B.units.find((x) => x.uid === +tr.dataset.u); tr.querySelector('.rf i').appendChild(portrait(faceOf(u), '平', 64, u.side !== 'player')); tr.onclick = () => choose(u); });
+      panel.querySelectorAll('[data-s]').forEach((b) => b.onclick = () => { side = b.dataset.s; draw(); });
+      panel.querySelectorAll('th[data-k]').forEach((th) => th.onclick = () => { const k = th.dataset.k; if (key === k) dir = -dir; else { key = k; dir = k === 'name' ? 1 : -1; } draw(); });
+      panel.querySelector('.sx').onclick = () => done(null);
+    };
+    let done, busy = false;
+    const choose = async (u) => { if (busy) return; busy = true; const a = await this.menu([{ id: 'info', label: '詳細資料' }, { id: 'go', label: '移動游標到這裡' }], innerWidth / 2 - 110, innerHeight / 2 - 60, u.name); busy = false; if (a === 'info') { busy = true; off(); await this.sheet(u, B); busy = false; off = keys(); } if (a === 'go') done(u); };
+    const keys = () => this.onKey((e) => { if (busy) return; if (['Escape', 'KeyX', 'KeyL'].includes(e.code)) done(null); if (e.code === 'ArrowRight' || e.code === 'ArrowLeft') { const i = SIDES.findIndex(([s]) => s === side), n = (i + (e.code === 'ArrowRight' ? 1 : SIDES.length - 1)) % SIDES.length; side = SIDES[n][0]; draw(); } });
+    let off = keys();
+    draw();
+    return new Promise((res) => { done = (u) => { off(); panel.remove(); res(u); }; });
+  }
   // the little windows in the corners: who is under the cursor, what ground
   hover(u, ter, B) {
     let h = $('hov'); if (!h) { h = el('div', ''); h.id = 'hov'; this.root.appendChild(h); }

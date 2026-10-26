@@ -83,3 +83,21 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .tlogo { text-align: center; } .tzh { font: 900 clamp(54px, 10vw, 110px) "Noto Serif TC", serif; letter-spacing: .2em; background: linear-gradient(#fff4d0, #e8a040 60%, #8a3a10); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 20px rgba(255, 120, 30, .5)); } .ten { font: 700 clamp(16px, 3vw, 26px) Cinzel, serif; letter-spacing: .6em; color: #e8c890; }
 .tmenu { display: flex; flex-direction: column; gap: 8px; } .tmenu button { width: 240px; padding: 10px; font-size: 20px; font-weight: 700; letter-spacing: .2em; border-radius: 8px; border: 2px solid var(--edge); background: rgba(20, 24, 60, .82); } .tmenu button:hover:not(:disabled) { background: linear-gradient(#e8c060, #a87a30); color: #1a1408; } .tmenu button:disabled { opacity: .4; }
 .tfoot { color: #c8a878; font-size: 15px; letter-spacing: .3em; text-shadow: 0 2px 4px #000; }
+
+/* everyone on the field */
+.roster { position: fixed; inset: 0; z-index: 21; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, .55); }
+.rwin { width: min(1100px, 96vw); max-height: 92vh; display: flex; flex-direction: column; background: var(--win); border: 3px solid var(--edge); box-shadow: 0 0 0 2px #0a0a18, 0 6px 18px rgba(0, 0, 0, .6); border-radius: 10px; color: #f4ecd8; }
+.rhead { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 2px solid var(--edge); } .rhead > b { font: 700 22px "Noto Serif TC", serif; } .rtabs { display: flex; gap: 6px; flex: 1; flex-wrap: wrap; }
+.rtab { border: 2px solid var(--edge); background: rgba(0, 0, 0, .25); color: #f4ecd8; border-radius: 8px; padding: 5px 12px; font: 700 15px inherit; cursor: pointer; } .rtab small { opacity: .7; }
+.rtab.on.player, .rtab.on.all { background: #2a4ab0; } .rtab.on.ally { background: #2a7a3a; } .rtab.on.enemy { background: #a82a34; }
+.rhead .sx { position: static; margin-left: auto; }
+.rtable { overflow: auto; } .rtable table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.rtable th { position: sticky; top: 0; background: #1c2240; padding: 6px 4px; font-weight: 700; color: #e8d8a0; cursor: pointer; white-space: nowrap; user-select: none; } .rtable th.on { color: #ffe070; }
+.rtable td { padding: 4px; text-align: center; border-bottom: 1px solid rgba(232, 216, 160, .15); white-space: nowrap; }
+.rtable tr[data-u] { cursor: pointer; } .rtable tr[data-u]:hover { background: rgba(255, 240, 180, .1); }
+.rtable tr.enemy td.rn b { color: #ffb0a8; } .rtable tr.ally td.rn b, .rtable tr.other td.rn b { color: #a8f0b0; } .rtable tr.player td.rn b { color: #b8d0ff; } .rtable tr.done { opacity: .55; }
+.rf i { display: block; width: 44px; height: 44px; border-radius: 50%; overflow: hidden; border: 2px solid var(--edge); background: rgba(0, 0, 0, .3); } .rf canvas { width: 44px; height: 44px; display: block; }
+.rn { text-align: left !important; } .rn b { display: block; font-size: 16px; } .rn small { opacity: .75; font-size: 12px; } .rn em { font-style: normal; font-size: 11px; background: #a82a34; color: #fff; border-radius: 4px; padding: 0 4px; }
+.rh span { display: block; font-size: 13px; } .rh i { display: block; width: 64px; height: 6px; background: #1a1a1a; border-radius: 3px; margin: 2px auto 0; overflow: hidden; } .rh em { display: block; height: 100%; }
+.rw { font-size: 13px; opacity: .9; } .rnone { padding: 20px !important; opacity: .7; } .rfoot { padding: 6px 14px; font-size: 12px; opacity: .65; border-top: 1px solid rgba(232, 216, 160, .2); }
+@media (max-width: 760px) { .rtable table { font-size: 13px; } .rf i, .rf canvas { width: 34px; height: 34px; } .rw { display: none; } }
