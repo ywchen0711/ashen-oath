@@ -97,23 +97,22 @@ function draw(g, p, ex) {
 // a fine line of warm light along the upper-left edges of what's on the layer
 function rim(l, G) { l.save(); l.globalCompositeOperation = 'source-atop'; const gr = l.createLinearGradient(G.cx - 80, 0, G.cx + 40, 0); gr.addColorStop(0, 'rgba(255,236,200,0.5)'); gr.addColorStop(1, 'rgba(255,236,200,0)'); l.fillStyle = gr; l.fillRect(-60, -60, 200, 320); l.restore(); }
 function geo(p, f, kid, H) {
-  const cx = 92, ey = kid ? 100 : 94, fw = kid ? 31 : f ? 33 : 35.5, mid = cx + 8;
-  const chin = ey + (kid ? 35 : f ? 40 : 43);
-  return { cx, ey, fw, mid, chin, hl: ey - 31, top: ey - 68 - (H.vol - 1) * 40, nearEye: mid - (f ? 18.5 : 19.5), farEye: mid + (f ? 16.5 : 17.5), mx: mid + 3, my: ey + (kid ? 24 : f ? 27.5 : 29.5) };
+  const cx = 92, ey = kid ? 100 : 94, fw = kid ? 30 : f ? 30.5 : 31.5, mid = cx + 8;
+  const chin = ey + (kid ? 36 : f ? 42 : 46);
+  return { cx, ey, fw, mid, chin, hl: ey - 31, top: ey - 68 - (H.vol - 1) * 40, nearEye: mid - (f ? 17.5 : 18), farEye: mid + (f ? 15.5 : 16), mx: mid + 2, my: ey + (kid ? 25 : f ? 29 : 31.5) };
 }
 function facePath(g, G) {
   const { cx, ey, fw, chin, f, kid } = G, soft = f || kid;
   g.beginPath(); g.moveTo(cx - fw, ey - 36);
-  g.bezierCurveTo(cx - fw - 2.5, ey - 8, cx - fw - 1.5, ey + 10, cx - fw + (soft ? 7 : 5), ey + (soft ? 23 : 26));
-  if (soft) g.bezierCurveTo(cx - fw + 16, ey + 33, cx + 1, chin, cx + 8, chin);
-  else { g.bezierCurveTo(cx - fw + 12, ey + 34, cx - 4, chin - 1, cx + 5, chin); g.lineTo(cx + 11, chin - 0.5); }
-  g.bezierCurveTo(cx + 15, chin - 1, cx + fw - 6, ey + 30, cx + fw - 2, ey + 19);
+  g.bezierCurveTo(cx - fw - 2, ey - 8, cx - fw - 1, ey + 10, cx - fw + (soft ? 6 : 4.5), ey + (soft ? 22 : 25));
+  g.bezierCurveTo(cx - fw + 14, ey + (soft ? 34 : 37), cx + 2, chin - 1.5, cx + 7.5, chin);
+  g.bezierCurveTo(cx + 12, chin - 1.5, cx + fw - 6, ey + (soft ? 30 : 32), cx + fw - 2, ey + 19);
   g.bezierCurveTo(cx + fw + 1.5, ey + 10, cx + fw + 3, ey - 2, cx + fw + 1, ey - 10);
   g.lineTo(cx + fw, ey - 36); g.bezierCurveTo(cx + fw, ey - 76, cx - fw, ey - 76, cx - fw, ey - 36); g.closePath();
 }
 // ---------------------------------------------------------------- neck and face
 function neck(g, p, G, skin) {
-  const { cx, ey } = G, x = cx + 4, w = G.f || G.kid ? 9.5 : 12.5;
+  const { cx, ey } = G, x = cx + 5, w = G.f || G.kid ? 8 : 10;
   path(g, [[x - w - 1, ey + 14], [x - w, ey + 48, x - w - 4, ey + 64], [x + w + 6, ey + 64], [x + w + 2, ey + 46, x + w + 1, ey + 14]]); ink(g, skin, G.skinLine, 1.5);
   g.save(); path(g, [[x - w - 1, ey + 14], [x - w, ey + 48, x - w - 4, ey + 64], [x + w + 6, ey + 64], [x + w + 2, ey + 46, x + w + 1, ey + 14]]); g.clip();
   // the shadow the jaw throws on the neck, and the far side of the neck
@@ -126,15 +125,16 @@ function neck(g, p, G, skin) {
 function face(g, p, G, skin, H, ex) {
   const { cx, ey, fw, chin, mid } = G;
   // the ear on the near side
-  path(g, [[cx - fw + 1, ey - 9], [cx - fw - 9, ey - 14, cx - fw - 11, ey + 10, cx - fw + 1, ey + 14]]); ink(g, skin, G.skinLine, 1.5);
-  stroke(g, [[cx - fw - 2, ey - 6], [cx - fw - 7, ey - 6, cx - fw - 6, ey + 6, cx - fw - 1, ey + 8]], G.skinShade, 1.6);
-  facePath(g, G); ink(g, skin, G.skinLine, 1.6);
+  path(g, [[cx - fw + 1, ey - 6], [cx - fw - 6.5, ey - 10, cx - fw - 8, ey + 8, cx - fw + 1, ey + 11]]); ink(g, skin, G.skinLine, 1.1);
+  stroke(g, [[cx - fw - 1, ey - 3], [cx - fw - 5, ey - 3, cx - fw - 4.5, ey + 5, cx - fw - 0.5, ey + 6]], G.skinShade, 1.3);
+  facePath(g, G); ink(g, skin, G.skinLine, 1.25);
   g.save(); facePath(g, G); g.clip();
   // cel shading: the far cheek, under the fringe, the nose
-  path(g, [[cx + fw - 7, ey - 44], [cx + fw - 3, ey - 4, cx + fw - 8, ey + 20, cx + 12, chin + 1], [cx + fw + 12, chin + 2], [cx + fw + 12, ey - 44]]); g.fillStyle = G.skinShade; g.globalAlpha = 0.75; g.fill(); g.globalAlpha = 1;
+  path(g, [[cx + fw - 3, ey - 44], [cx + fw + 0.5, ey - 4, cx + fw - 4, ey + 22, cx + 11, chin + 1], [cx + fw + 12, chin + 2], [cx + fw + 12, ey - 44]]); g.fillStyle = G.skinShade; g.globalAlpha = 0.55; g.fill(); g.globalAlpha = 1;
+  path(g, [[cx - 20, chin - 10], [cx + 4, chin - 2, cx + 26, chin - 12], [cx + 26, chin + 4], [cx - 20, chin + 4]]); g.fillStyle = G.skinShade; g.globalAlpha = 0.35; g.fill(); g.globalAlpha = 1;
   if (H.fringe !== 'none' && H.fringe !== 'buzz' && !H.helm) { g.save(); g.translate(2.5, 6); g.beginPath(); for (const s of fringeShapes(H, p, G)) { add(g, s); g.closePath(); } g.fillStyle = G.skinShade; g.fill(); g.restore(); }
   if (H.fringe === 'buzz' || H.fringe === 'slick') { g.fillStyle = G.skinShade; g.fillRect(cx - fw - 4, ey - 50, fw * 2 + 8, 14); }
-  path(g, [[mid - 1, ey + 2], [mid + 4.5, ey + 15], [mid - 2, ey + 16], [mid - 2, ey + 8]]); g.fillStyle = G.skinShade; g.globalAlpha = 0.8; g.fill(); g.globalAlpha = 1;
+  
   // a soft glow on the near cheek
   { const fg = g.createLinearGradient(0, ey - 40, 0, G.chin); fg.addColorStop(0, 'rgba(120,60,90,0.06)'); fg.addColorStop(1, 'rgba(255,240,230,0.12)'); g.fillStyle = fg; g.fillRect(cx - 60, ey - 80, 140, 160); }
   const gl = g.createRadialGradient(cx - 14, ey + 10, 1, cx - 14, ey + 10, 18); gl.addColorStop(0, 'rgba(255,255,255,0.26)'); gl.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gl; g.fillRect(cx - 40, ey - 10, 50, 40);
@@ -156,13 +156,13 @@ function face(g, p, G, skin, H, ex) {
 }
 function nose(g, G) {
   const { mid, ey } = G;
-  stroke(g, [[mid + 2, ey + 11], [mid + 5, ey + 15.5, mid + 2.5, ey + 16.5]], G.skinLine, 1.3);
-  g.fillStyle = 'rgba(255,255,255,0.55)'; g.beginPath(); g.ellipse(mid + 1, ey + 9, 1, 2.2, -0.3, 0, 7); g.fill();
+  g.fillStyle = G.skinShade; g.globalAlpha = 0.7; path(g, [[mid + 1.5, ey + 10], [mid + 4.2, ey + 16.5], [mid + 0.5, ey + 17]]); g.fill(); g.globalAlpha = 1;
+  stroke(g, [[mid + 3, ey + 14.5], [mid + 4.4, ey + 16.6, mid + 2, ey + 17.2]], G.skinLine, 1);
 }
 // ---------------------------------------------------------------- eyes
 function eyes(g, p, ex, G) {
   const E = EYES[p.eye] || EYES.round, ec = p.ec || '#5a4a3a', { ey, f, kid } = G;
-  const W = (f ? 11.2 : 10.6) * (kid ? 1.06 : 1), H0 = (f ? 13 : 10.2) * (kid ? 1.12 : 1) * E.h * (G.old ? 0.85 : 1);
+  const W = (f ? 11.4 : 11.8) * (kid ? 1.04 : 1), H0 = (f ? 13.4 : 10.4) * (kid ? 1.14 : 1) * E.h * (G.old ? 0.85 : 1);
   const open = { closed: 0, grin: 0, surprise: 1.22, smile: 0.78, angry: 0.74, cold: 0.62, det: 0.82, pain: 0.42, sad: 0.86, cry: 0.8, shy: 0.86 }[ex] ?? 1;
   const look = ex === 'cold' || ex === 'shy' ? 1.6 : ex === 'sad' ? 0.4 : 0.8, lift = ex === 'sad' || ex === 'cry' ? -0.1 : ex === 'angry' ? 0.16 : ex === 'det' ? 0.08 : 0;
   for (const [x0, sd, sx] of [[G.nearEye, -1, 1], [G.farEye, 1, 0.84]]) {
@@ -177,13 +177,13 @@ function eyes(g, p, ex, G) {
     }
     g.save(); g.translate(x0, y);
     // the opening of the eye: high toward the outer corner, a flatter lower lid
-    const oy = -h * (0.42 + s), iy = h * 0.42;
+    const oy = -h * (0.42 + s + (f ? 0 : 0.06)), iy = h * 0.42;
     const shape = [[-sd * w, iy * 0.6], [-sd * w * 0.7, -h * 0.9, sd * w * 0.4, -h * 1.08, sd * w, oy], [sd * w * 0.9, iy * 0.9, sd * w * 0.2, h * 0.62, -sd * w, iy * 0.6]];
     path(g, shape); g.fillStyle = '#fbfbff'; g.fill();
     g.save(); path(g, shape); g.clip();
     g.fillStyle = 'rgba(120,120,170,0.28)'; g.fillRect(-w - 2, -h * 1.3, w * 2 + 4, h * 0.75);
     // the iris: tall, dark at the top under the lid, light at the bottom, with a ring, a pupil and catchlights
-    const ir = (f ? 7.3 : 6.4) * E.iris * (kid ? 1.08 : 1) * (sx < 1 ? 0.92 : 1), irh = ir * (f ? 1.32 : 1.22) * (ex === 'surprise' ? 0.92 : 1), ix = sd * 0.6 + look, icy = h * 0.06;
+    const ir = (f ? 7.6 : 7.0) * E.iris * (kid ? 1.08 : 1) * (sx < 1 ? 0.92 : 1), irh = ir * (f ? 1.32 : 1.22) * (ex === 'surprise' ? 0.92 : 1), ix = sd * 0.6 + look, icy = h * 0.06;
     const gr = g.createLinearGradient(0, icy - irh, 0, icy + irh); gr.addColorStop(0, cool(ec, 0.3, 0.2)); gr.addColorStop(0.4, cool(ec, 0.85, 0.1)); gr.addColorStop(0.72, warm(ec, 1.25)); gr.addColorStop(1, warm(ec, 1.6));
     g.beginPath(); g.ellipse(ix, icy, ir, irh, 0, 0, 7); g.fillStyle = gr; g.fill(); g.strokeStyle = shade(ec, 0.35); g.lineWidth = 1.1; g.stroke();
     if (!E.empty) {
@@ -198,7 +198,7 @@ function eyes(g, p, ex, G) {
     g.fillStyle = 'rgba(60,30,90,0.26)'; path(g, [[-w - 2, -h * 1.3], [w + 2, -h * 1.3], [w + 2, -h * 0.35], [0, -h * 0.55, -w - 2, -h * 0.3]]); g.fill();
     g.restore();
     // the upper lash line: a thick tapering stroke, a wing at the outer corner; a short lower lid line
-    const lw = (f ? 3.4 : 2.7) * (E.heavy ? 1.15 : 1);
+    const lw = (f ? 3.6 : 3.1) * (E.heavy ? 1.12 : 1);
     path(g, [[-sd * (w + 1), iy * 0.6 + 0.5], [-sd * w * 0.7, -h * 0.9 - 0.6, sd * w * 0.4, -h * 1.08 - 0.6, sd * (w + 1.5), oy - 0.5], [sd * (w + (f ? 4 : 2)), oy + (f ? 1.5 : 1)], [sd * w * 0.4, -h * 1.08 + lw, -sd * w * 0.7, -h * 0.9 + lw * 0.7, -sd * (w - 1), iy * 0.6 + 1]]); { const lg = g.createLinearGradient(-sd * w, 0, sd * w, 0); lg.addColorStop(0, LASH); lg.addColorStop(0.6, LASH); lg.addColorStop(1, mix(p.hc || '#3a2a1a', '#3a1418', 0.55)); g.fillStyle = lg; } g.fill();
     if (f || E.lash) { g.strokeStyle = LASH; g.lineWidth = 1.4; for (const [a, b, c2, d] of [[0.75, -0.2, 1.22, -0.45], [0.95, 0.15, 1.34, 0.1]]) { g.beginPath(); g.moveTo(sd * w * a, oy + (b + 0.5) * h * 0.3); g.lineTo(sd * w * c2, oy + d * h * 0.3 - 1); g.stroke(); } }
     g.strokeStyle = mix(p.skin || '#f0c8a8', '#5a2a30', 0.55); g.lineWidth = 1.2; g.beginPath(); g.moveTo(sd * (w - 0.5), oy + h * 0.6); g.quadraticCurveTo(sd * w * 0.5, h * 0.66, -sd * w * 0.15, h * 0.64); g.stroke();
@@ -231,17 +231,17 @@ function patch(g, x, y, W, H0, G) {
 function mouth(g, p, ex, G) {
   const { mx, my, f } = G, lc = mix(p.skin || '#f0c8a8', '#4a1a22', 0.65), inside = '#7a2a34', tongue = '#d8707a';
   const open = (pts, teeth, tong = true) => { path(g, pts); g.fillStyle = inside; g.fill(); g.save(); path(g, pts); g.clip(); if (tong) { g.fillStyle = tongue; g.beginPath(); g.ellipse(mx + 1, my + 7, 6, 3.5, 0, 0, 7); g.fill(); } if (teeth) { g.fillStyle = '#ffffff'; g.fillRect(mx - 12, my - 6, 24, teeth); } g.restore(); path(g, pts); g.strokeStyle = lc; g.lineWidth = 1.3; g.stroke(); };
-  if (ex === 'grin' || p.grin && ex === 'smile') { open([[mx - 8, my - 1.5], [mx, my + 0.5, mx + 8, my - 2], [mx + 6, my + 8, mx, my + 9], [mx - 5, my + 8.5, mx - 8, my - 1.5]], p.grin ? 6.6 : 5.6); return; }
-  if (ex === 'smile') { stroke(g, [[mx - 6, my - 0.5], [mx, my + 3.5, mx + 6, my - 1.5]], lc, 1.4); stroke(g, [[mx + 5.5, my - 2], [mx + 7, my - 2.5]], lc, 1.1); return; }
+  if (ex === 'grin' || p.grin && ex === 'smile') { open([[mx - 7, my - 1.5], [mx, my + 0.2, mx + 7, my - 1.5], [mx + 5, my + 7.5, mx, my + 8], [mx - 5, my + 7.5, mx - 7, my - 1.5]], p.grin ? 5.8 : 4.8); return; }
+  if (ex === 'smile') { stroke(g, [[mx - 5, my - 1], [mx, my + 3, mx + 5, my - 1]], lc, 1.3); return; }
   if (ex === 'surprise') { open([[mx - 3, my + 2], [mx - 3, my - 3, mx + 3, my - 3, mx + 3, my + 2], [mx + 3, my + 7, mx - 3, my + 7, mx - 3, my + 2]], 0); return; }
   if (ex === 'angry') { open([[mx - 7, my + 1], [mx, my - 3, mx + 7, my], [mx + 6, my + 6], [mx, my + 4.5, mx - 6, my + 6]], 3, false); g.strokeStyle = lc; g.lineWidth = 0.8; g.beginPath(); g.moveTo(mx - 6, my + 3); g.lineTo(mx + 6, my + 3); g.stroke(); return; }
   if (ex === 'pain') { path(g, [[mx - 7, my - 1], [mx + 7, my - 2], [mx + 6, my + 4], [mx - 6, my + 4]]); g.fillStyle = '#ffffff'; g.fill(); g.strokeStyle = lc; g.lineWidth = 1.2; g.stroke(); g.lineWidth = 0.8; g.beginPath(); g.moveTo(mx - 6.5, my + 1.5); g.lineTo(mx + 6.5, my + 1); for (const x of [-3, 0.5, 4]) { g.moveTo(mx + x, my - 1.5); g.lineTo(mx + x, my + 4); } g.stroke(); return; }
-  if (ex === 'sad' || ex === 'cry') { if (ex === 'cry') { open([[mx - 5, my + 2], [mx, my - 1.5, mx + 5, my + 2], [mx, my + 4.5, mx - 5, my + 2]], 0); return; } stroke(g, [[mx - 5, my + 1.5], [mx, my - 1.5, mx + 5, my + 1.5]], lc, 1.3); return; }
-  if (ex === 'cold') { stroke(g, [[mx - 4.5, my + 0.5], [mx + 5, my - 0.3]], lc, 1.2); return; }
-  if (ex === 'shy') { stroke(g, [[mx - 4, my + 0.5], [mx - 1.5, my - 1, mx, my + 0.5], [mx + 1.5, my + 1.8, mx + 4, my + 0.2]], lc, 1.2); return; }
-  if (ex === 'det') { stroke(g, [[mx - 5.5, my], [mx, my - 0.8, mx + 5.5, my]], lc, 1.5); return; }
-  stroke(g, [[mx - 5, my], [mx, my + 1.6, mx + 5, my - 0.4]], lc, 1.3);
-  if (f) { g.fillStyle = 'rgba(220,110,120,0.35)'; g.beginPath(); g.ellipse(mx, my + 3, 3, 1, 0, 0, 7); g.fill(); }
+  if (ex === 'sad' || ex === 'cry') { if (ex === 'cry') { open([[mx - 5, my + 2], [mx, my - 1.5, mx + 5, my + 2], [mx, my + 4.5, mx - 5, my + 2]], 0); return; } stroke(g, [[mx - 4, my + 1.2], [mx, my - 1.2, mx + 4, my + 1.2]], lc, 1.2); return; }
+  if (ex === 'cold') { stroke(g, [[mx - 4, my], [mx + 4, my]], lc, 1.15); return; }
+  if (ex === 'shy') { stroke(g, [[mx - 3.5, my + 0.6], [mx - 1.2, my - 0.8, mx, my + 0.4], [mx + 1.2, my + 1.6, mx + 3.5, my + 0.6]], lc, 1.1); return; }
+  if (ex === 'det') { stroke(g, [[mx - 4.6, my + 0.4], [mx, my - 0.6, mx + 4.6, my + 0.4]], lc, 1.35); return; }
+  stroke(g, [[mx - (f ? 3.6 : 4.4), my], [mx, my + 1.1, mx + (f ? 3.6 : 4.4), my]], lc, 1.2);
+  if (f) { g.fillStyle = 'rgba(220,110,120,0.32)'; g.beginPath(); g.ellipse(mx, my + 2.8, 2.6, 0.9, 0, 0, 7); g.fill(); }
 }
 function beard(g, p, G) {
   // sideburns down the jaw into a beard hanging from the chin (to a long point for the proud ones), the cheeks left clear
@@ -286,7 +286,11 @@ function crownPath(H, G) {
 function fringeShapes(H, p, G) {
   const { cx, ey, fw, hl, f } = G, spec = FRINGE[H.fringe]; if (!spec) return [];
   const top = ey - 24 - 46 * H.vol, short = !f && H.fringe !== 'swept' && H.fringe !== 'parted' ? 0.9 : 1;
-  return spec.map(([ru, tu, d, w, b]) => lock(cx + 4 + ru * fw * 0.8, top + 14 + Math.abs(ru) * 12, cx + 4 + tu * fw, hl + d * short, w, b));
+  const L = spec.map(([ru, tu, d, w, b]) => lock(cx + 4 + ru * fw * 0.8, top + 14 + Math.abs(ru) * 12, cx + 4 + tu * fw, hl + d * short, w, b));
+  if (H.fringe === 'slick') return L;
+  // slim locks between the big ones, reaching a little lower, so the fringe falls in fine points
+  for (let i = 0; i + 1 < spec.length; i++) { const a = spec[i], c = spec[i + 1], ru = (a[0] + c[0]) / 2, tu = (a[1] + c[1]) / 2 + (i % 2 ? 0.04 : -0.04), d = Math.min(a[2], c[2]) - 3; L.push(lock(cx + 4 + ru * fw * 0.8, top + 16 + Math.abs(ru) * 12, cx + 4 + tu * fw, hl + d * short, 9, (a[4] + c[4]) / 2)); }
+  return L;
 }
 function sideLocks(H, p, G) {
   const { cx, ey, fw, hl, f, kid } = G, longish = f || ['long', 'flow', 'longwhite', 'tied', 'tailm', 'viking'].includes(p.hair);
@@ -304,7 +308,7 @@ function frontHair(g, H, p, G, hc, scale = 1) {
   if (p.ahoge) { const x = cx + 6, y = ey - 24 - 46 * H.vol; crest.push([[x - 3, y + 6], [x - 6, y - 14, x + 10, y - 20], [x + 2, y - 10, x + 3, y + 6]]); }
   const all = [crown, ...crest, ...sides, ...locks];
   const topY = ey - 24 - 46 * H.vol;
-  group(g, all, hc, outl, 1.5, (g) => {
+  group(g, all, hc, outl, 1.15, (g) => {
   const gr = g.createLinearGradient(0, topY - 10, 0, ey + 50); gr.addColorStop(0, warm(hc, 1.1)); gr.addColorStop(0.32, hc); gr.addColorStop(0.62, cool(hc, 0.9, 0.12)); gr.addColorStop(1, warm(hc, 1.12)); g.fillStyle = gr; g.fillRect(cx - 110, topY - 40, 260, 220);
   // shading: the far side, the shade under the crown at the roots of the fringe, and one side of each lock
   g.fillStyle = cool(hc, 0.74); path(g, [[cx + fw + 26, ey - 96], [cx + fw * 0.05, ey - 56, cx + fw * 0.5, hl, cx + fw * 0.7, ey + 60], [cx + fw + 40, ey + 60], [cx + fw + 40, ey - 90]]); g.fill();
@@ -351,7 +355,7 @@ function backHair(g, H, p, G, hc) {
   if (b === 'twin') { shapes = [skull(ey + 4), ...tips(cx - R, cx + R + 2, ey + 8, 5, 8)]; for (const sd of [-1, 1]) { const sx = cx + 2 + sd * (R - 2), sy = ey - 50; shapes.push([[sx - 6, sy], [sx + sd * 36, sy + 6, sx + sd * 32, sy + 70, sx + sd * 18, sy + 132], [sx + sd * 4, sy + 70, sx - sd * 4, sy + 30, sx - 6, sy]], lock(sx + sd * 14, sy + 60, sx + sd * 30, sy + 124, 14, sd * 6)); } }
   if (b === 'bun') { shapes = [skull(ey + 2), ...tips(cx - R, cx + R + 2, ey + 6, 5, 6), blob(cx + R * 0.55, top + 4, 15, 13)]; }
   if (!shapes.length) return;
-  group(g, shapes, dark, outl, 1.5, (g) => { const gr = g.createLinearGradient(0, top, 0, ey + 110); gr.addColorStop(0, cool(hc, 0.78, 0.18)); gr.addColorStop(0.6, cool(hc, 0.82, 0.12)); gr.addColorStop(1, warm(hc, 1.05)); g.fillStyle = gr; g.fillRect(cx - 120, top - 40, 260, 260); g.fillStyle = cool(hc, 0.6, 0.24); g.fillRect(cx + fw * 0.4, 0, 120, 200);
+  group(g, shapes, dark, outl, 1.15, (g) => { const gr = g.createLinearGradient(0, top, 0, ey + 110); gr.addColorStop(0, cool(hc, 0.78, 0.18)); gr.addColorStop(0.6, cool(hc, 0.82, 0.12)); gr.addColorStop(1, warm(hc, 1.05)); g.fillStyle = gr; g.fillRect(cx - 120, top - 40, 260, 260); g.fillStyle = cool(hc, 0.6, 0.24); g.fillRect(cx + fw * 0.4, 0, 120, 200);
   g.strokeStyle = shade(hc, 0.95); g.lineWidth = 1; for (let k = 0; k < 9; k++) { const x = cx - R - 8 + k * (R * 2 + 16) / 8; stroke(g, [[x, ey - 4], [x + 3, ey + 40, x + (k - 4) * 2, ey + 90]], shade(hc, k % 2 ? 0.95 : 0.55), 1); }
   });
   if (b === 'pony' || b === 'twin') { for (const sd of b === 'twin' ? [-1, 1] : [1]) { const x = b === 'pony' ? cx + R - 2 : cx + 2 + sd * (R - 2), y = ey - 50; g.beginPath(); g.ellipse(x, y + 2, 5, 6, 0, 0, 7); ink(g, p.ac || '#c83a3a', shade(p.ac || '#c83a3a', 0.4), 1.2); } }
@@ -391,7 +395,7 @@ function body(g, p, kind, G) {
     g.restore(); g.strokeStyle = shade(oc, 0.6); g.lineWidth = 11; g.beginPath(); g.moveTo(nx - 50 * k, y0); g.lineTo(nx + 40 * k, 196); g.stroke(); g.strokeStyle = oc; g.lineWidth = 8; g.stroke(); g.strokeStyle = shade(oc, 1.3); g.lineWidth = 1.2; g.beginPath(); g.moveTo(nx - 48 * k, y0 - 2); g.lineTo(nx + 42 * k, 193); g.stroke();
     g.beginPath(); g.arc(nx - 5, y0 + 44, 4.5, 0, 7); ink(g, ac, al, 1.2); return;
   }
-  path(g, torso); ink(g, oc, ol, 1.7);
+  path(g, torso); ink(g, oc, ol, 1.3);
   g.save(); clip();
   if (kind === 'coat') {
     // the shirt inside, lapels, a standing collar, buttons and trim

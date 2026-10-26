@@ -42,6 +42,8 @@ export class MapView {
     if (this.path && this.path.length > 1) { g.strokeStyle = 'rgba(255,240,140,0.95)'; g.lineWidth = TS * 0.2; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); this.path.forEach(([x, y], i) => (i ? g.lineTo : g.moveTo).call(g, x * TS + TS / 2, y * TS + TS / 2)); g.stroke(); const [ex, ey] = this.path[this.path.length - 1]; g.fillStyle = '#fff0a0'; g.beginPath(); g.arc(ex * TS + TS / 2, ey * TS + TS / 2, TS * 0.18, 0, 7); g.fill(); }
     // the soldiers, top to bottom
     const list = B.units.filter((u) => !u.dead && u.x != null && !u.rescuedBy && (!fog || u.side === 'player' || u.side === 'ally' || fog.has(u.y * F.W + u.x))).sort((a, b) => (a.ay ?? a.y) - (b.ay ?? b.y));
+    // anyone walking where it can't be seen (in the fog) arrives at once, so no one waits on a walk never drawn
+    for (const u of B.units) if (u.anim && !list.includes(u)) { const A = u.anim; u.anim = null; A.done(); }
     for (const u of list) {
       this.look(u); let x = u.x, y = u.y, face = 'down', frame = Math.floor(t * 3 + u.uid * 0.7) % 3;
       if (u.anim) { const A = u.anim; A.t += dt * 9; const i = Math.min(A.path.length - 1, Math.floor(A.t)), j = Math.min(A.path.length - 1, i + 1), k = A.t - i, [x0, y0] = A.path[i], [x1, y1] = A.path[j]; x = x0 + (x1 - x0) * k; y = y0 + (y1 - y0) * k; face = x1 !== x0 ? 'side' : y1 < y0 ? 'up' : 'down'; frame = Math.floor(A.t * 2) % 4; u.flip = x1 < x0; if (A.t >= A.path.length - 1) { u.anim = null; A.done(); } }
