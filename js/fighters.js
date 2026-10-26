@@ -60,7 +60,7 @@ export function fighter(u, pose) {
   const lt = g.createLinearGradient(0, 120, 0, 470); lt.addColorStop(0, 'rgba(255,240,220,0.14)'); lt.addColorStop(0.5, 'rgba(255,255,255,0)'); lt.addColorStop(1, 'rgba(50,24,90,0.22)'); g.fillStyle = lt; g.fillRect(0, 0, 520, 520);
   const fr = g.createLinearGradient(140, 0, 380, 0); fr.addColorStop(0, 'rgba(40,20,80,0.12)'); fr.addColorStop(0.6, 'rgba(255,255,255,0)'); fr.addColorStop(1, 'rgba(255,236,200,0.14)'); g.fillStyle = fr; g.fillRect(0, 0, 520, 520);
   g.globalCompositeOperation = 'source-over';
-  watercolor(c, { bloom: 0.26, grain: 0.26, scale: 1 }); CACHE.set(key, c); return c;
+  watercolor(c, { sat: 1, bright: 1.02, bloom: 0.2, grain: 0.2, lift: 0.07, scale: 1 }); CACHE.set(key, c); return c;
 }
 // ---------------------------------------------------------------- shapes
 function pathOf(g, pts) { g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (const p of pts.slice(1)) { if (p.length === 4) g.quadraticCurveTo(p[0], p[1], p[2], p[3]); else if (p.length === 6) g.bezierCurveTo(p[0], p[1], p[2], p[3], p[4], p[5]); else g.lineTo(p[0], p[1]); } g.closePath(); }
@@ -91,23 +91,27 @@ function limb(g, a, b, c, w1, w2, w3, fill, fill2, hi) {
 // angles from straight down: torso lean, thighs and shins, upper and lower arms (front = the near arm holding the
 // weapon), and the angle the weapon points
 const POSE = {
-  idle: { lean: 0.06, ft: 0.32, fs: 0.04, bt: -0.3, bs: -0.12, fa: 0.4, ff: 1.55, ba: -0.25, bf: 0.3, wa: 2.25 },
-  wind: { lean: -0.14, ft: 0.5, fs: 0.12, bt: -0.42, bs: -0.2, fa: 2.75, ff: 3.5, ba: 0.6, bf: 1.3, wa: 3.95 },
-  strike: { lean: 0.36, ft: 0.95, fs: 0.3, bt: -0.8, bs: -0.4, fa: 1.45, ff: 1.62, ba: -0.7, bf: -0.35, wa: 1.72, dx: 8 },
+  // on guard: knees soft, weight back, the weapon up and forward
+  idle: { lean: 0.1, ft: 0.4, fs: -0.06, bt: -0.3, bs: -0.2, fa: 0.55, ff: 1.35, ba: -0.2, bf: 0.45, wa: 2.35 },
+  // raised: the weapon drawn up and back over the shoulder, the body coiled back, the free arm out for balance
+  wind: { lean: -0.12, ft: 0.48, fs: 0.02, bt: -0.4, bs: -0.28, fa: 2.75, ff: 3.45, ba: 0.75, bf: 1.35, wa: 3.9 },
+  // the blow lands: lunging, the arm sweeping forward, the blade angled down through the target
+  strike: { lean: 0.34, ft: 0.95, fs: 0.12, bt: -0.72, bs: -0.5, fa: 1.5, ff: 1.3, ba: -0.6, bf: -0.2, wa: 1.05, dx: 8 },
+  // through and down: the blade carried on low, the weight over the front foot
+  follow: { lean: 0.42, ft: 0.95, fs: 0.2, bt: -0.8, bs: -0.55, fa: 0.85, ff: 0.5, ba: -0.85, bf: -0.45, wa: 0.15, dx: 10, dy: 2 },
   cast: { lean: 0.1, ft: 0.4, fs: 0.06, bt: -0.36, bs: -0.14, fa: 1.25, ff: 1.85, ba: 0.9, bf: 2.3, wa: 2.6 },
   shoot: { lean: 0.03, ft: 0.38, fs: 0.05, bt: -0.34, bs: -0.12, fa: 1.52, ff: 1.57, ba: -2.0, bf: 1.42, wa: 1.57 },
-  hit: { lean: -0.4, ft: 0.15, fs: 0.25, bt: -0.55, bs: -0.1, fa: -0.35, ff: 0.4, ba: -1.0, bf: -0.5, wa: 2.9, dx: -6 },
-  dodge: { lean: -0.55, ft: 0.7, fs: -0.25, bt: -0.25, bs: 0.35, fa: 0.1, ff: 1.2, ba: -0.8, bf: -0.2, wa: 2.5, dx: -14, dy: 8 },
-  // the dash in: leaning hard into the run, the back leg kicked up, the weapon held low and behind
-  run: { lean: 0.55, ft: 1.25, fs: 0.35, bt: -0.75, bs: -1.6, fa: -0.6, ff: 0.2, ba: 0.9, bf: 1.9, wa: -0.7, dx: 4 },
-  // after the blow: the weapon carried on down and through, weight on the front foot
-  follow: { lean: 0.5, ft: 1.0, fs: 0.35, bt: -0.85, bs: -0.45, fa: 0.75, ff: 0.55, ba: -0.9, bf: -0.5, wa: 0.55, dx: 10, dy: 3 },
-  // landing from the hop back: knees bent
-  land: { lean: 0.2, ft: 0.75, fs: -0.35, bt: -0.55, bs: -0.75, fa: 0.5, ff: 1.4, ba: -0.4, bf: 0.4, wa: 2.2, dy: 6 },
+  // struck: the body thrown back from the chest, head and arms trailing
+  hit: { lean: -0.32, ft: 0.25, fs: 0.2, bt: -0.45, bs: -0.05, fa: 0.1, ff: 0.9, ba: -0.7, bf: -0.2, wa: 2.7, dx: -4 },
+  dodge: { lean: -0.42, ft: 0.62, fs: -0.15, bt: -0.3, bs: 0.2, fa: 0.35, ff: 1.3, ba: -0.7, bf: -0.1, wa: 2.5, dx: -10, dy: 4 },
+  // running in: two frames, the legs passing, the weapon carried low and ready
+  run: { lean: 0.32, ft: 0.85, fs: 0.05, bt: -0.55, bs: -1.05, fa: 0.25, ff: 1.0, ba: 0.6, bf: 1.4, wa: 2.0, dy: -2 },
+  run2: { lean: 0.3, ft: -0.2, fs: -0.75, bt: 0.55, bs: 0.15, fa: 0.4, ff: 1.15, ba: -0.4, bf: 0.4, wa: 2.1, dy: 2 },
+  land: { lean: 0.18, ft: 0.62, fs: -0.3, bt: -0.48, bs: -0.62, fa: 0.55, ff: 1.35, ba: -0.3, bf: 0.45, wa: 2.25, dy: 5 },
 };
 function poseFor(L) {
   const p = { ...(POSE[L.wt === 'bow' && L.pose === 'wind' ? 'shoot' : L.pose] || POSE.idle) };
-  if (L.wt === 'lance') Object.assign(p, { idle: { fa: 0.55, ff: 1.45, wa: 1.85 }, wind: { lean: -0.08, fa: -0.35, ff: 1.25, wa: 1.66 }, strike: { fa: 1.5, ff: 1.58, wa: 1.6 }, run: { fa: 0.2, ff: 1.3, wa: 1.75 }, follow: { fa: 1.35, ff: 1.5, wa: 1.5 } }[L.pose] || {});
+  if (L.wt === 'lance') Object.assign(p, { idle: { fa: 0.55, ff: 1.45, wa: 1.85 }, wind: { lean: -0.08, fa: -0.35, ff: 1.25, wa: 1.66 }, strike: { fa: 1.5, ff: 1.58, wa: 1.6 }, run: { fa: 0.35, ff: 1.3, wa: 1.75 }, run2: { fa: 0.4, ff: 1.35, wa: 1.75 }, follow: { fa: 1.35, ff: 1.5, wa: 1.5 } }[L.pose] || {});
   if (L.wt === 'staff') Object.assign(p, { idle: { fa: 0.3, ff: 1.2, wa: 3.05 }, cast: { fa: 1.7, ff: 2.6, wa: 2.85 } }[L.pose] || {});
   if (L.wt === 'tome' && L.pose === 'idle') Object.assign(p, { fa: 0.5, ff: 1.5 });
   if (L.wt === 'bow' && L.pose === 'idle') Object.assign(p, { fa: 0.7, ff: 1.0, wa: 1.57 });
@@ -144,7 +148,7 @@ function person(g, L, p, hip, onFoot) {
   const lean = p.lean, up = v(Math.PI - lean), U = (o, d) => add(o, [up[0] * d, up[1] * d]);
   const nx = Math.cos(lean), ny = Math.sin(lean), at = (o, d) => [o[0] + nx * d, o[1] + ny * d];
   const waist = U(hip, 13), chest = U(hip, 27), sho = U(hip, 36), neck = U(hip, 39), head = add(neck, v(Math.PI - lean * 0.4, 12));
-  const wind = L.pose === 'strike' ? -1.4 : L.pose === 'hit' || L.pose === 'dodge' ? 0.7 : L.pose === 'wind' ? -0.2 : -0.5;
+  const wind = L.pose === 'strike' || L.pose === 'follow' ? -0.85 : L.pose === 'run' || L.pose === 'run2' ? -1 : L.pose === 'hit' || L.pose === 'dodge' ? 0.55 : L.pose === 'wind' ? -0.25 : -0.4;
   const legsOf = (a1, a2) => { const knee = add(hip, v(a1, 28)), ank = add(knee, v(a2, 27)); return [knee, ank]; };
   const [bk, ba] = onFoot ? legsOf(p.bt, p.bs) : [add(hip, v(0.95, 23)), add(add(hip, v(0.95, 23)), v(-0.05, 23))];
   const [fk, fa] = onFoot ? legsOf(p.ft, p.fs) : [add(hip, v(1.05, 24)), add(add(hip, v(1.05, 24)), v(0.05, 23))];
@@ -157,7 +161,7 @@ function person(g, L, p, hip, onFoot) {
   leg(g, hip, bk, ba, cool(pants, 0.72, 0.2), cool(boot, 0.72, 0.2), L, true);
   const be = add(sho, v(p.ba, 19)), bh = add(be, v(p.bf, 18));
   const sleeveFar = L.bare ? cool(skin, 0.8, 0.16) : L.heavy ? '#7e8698' : cool(L.robe ? cloth : cloth2, 0.78, 0.18);
-  limb(g, sho, be, bh, 4.4, 3.8, 3.2, sleeveFar, L.bare ? cool(skin, 0.8, 0.16) : sleeveFar); ell(g, bh[0], bh[1], 3.3, 3.3, 0, cool(L.heavy ? '#a8b0c0' : glove, 0.75, 0.2));
+  limb(g, sho, be, bh, 4.6, 3.5, 2.9, sleeveFar, L.bare ? cool(skin, 0.8, 0.16) : sleeveFar); ell(g, bh[0], bh[1], 3.3, 3.3, 0, cool(L.heavy ? '#a8b0c0' : glove, 0.75, 0.2));
   // ---- the near leg
   leg(g, hip, fk, fa, pants, boot, L, false);
   // ---- the skirt of the coat, a robe, or plates over the hips
@@ -166,7 +170,7 @@ function person(g, L, p, hip, onFoot) {
   if (L.heavy) for (const [k1, s] of [[bk, 0.8], [fk, 1]]) { const a = lerp(hip, k1, 0.1), b = lerp(hip, k1, 0.62); seg(g, a, b, 7.5 * s, 6.5 * s, s < 1 ? '#8890a2' : '#c4ccdc', s < 1 ? null : '#f4f6fc'); g.strokeStyle = trim; g.lineWidth = 1.4; g.beginPath(); g.moveTo(...add(b, [-6, 3])); g.lineTo(...add(b, [6, 3])); g.stroke(); }
   if (L.bare && !L.robe) celPoly(g, [at(hip, -10), at(hip, 10), [hip[0] + 12, hip[1] + 14], [hip[0] - 2, hip[1] + 18], [hip[0] - 12, hip[1] + 12]], '#6a4a34', 2);
   // ---- the body
-  const torso = [at(sho, -10.5), at(sho, 9), [...at(chest, 14), ...at(waist, 8.5)], at(hip, 10), at(hip, -10), [...at(waist, -9), ...at(chest, -11)]];
+  const torso = [at(sho, -12), at(sho, 10.5), [...at(chest, 12.5), ...at(waist, 7.6)], at(hip, 9.6), at(hip, -9.6), [...at(waist, -8), ...at(chest, -12)]];
   const tc = L.bare ? skin : cloth;
   celPoly(g, torso, tc, 4, L.bare ? cool(skin, 0.82, 0.18) : cool(tc), undefined, 1.2, (g) => {
     if (L.bare) { // the chest and stomach muscles, a strap across
@@ -194,7 +198,7 @@ function person(g, L, p, hip, onFoot) {
   // ---- the near arm and the weapon
   const fe = add(sho, v(p.fa, 19)), fh = add(fe, v(p.ff, 18)), sleeve = L.bare ? skin : L.heavy ? '#b4bccc' : L.robe ? cloth : cloth2;
   if (L.wt !== 'bow') weapon(g, L, p, fh, 'back');
-  limb(g, sho, fe, fh, 4.8, 4.2, 3.6, sleeve, L.bare ? skin : L.heavy ? '#c4ccdc' : sleeve, warm(sleeve, 1.35));
+  limb(g, sho, fe, fh, 5, 3.8, 3.2, sleeve, L.bare ? skin : L.heavy ? '#c4ccdc' : sleeve, warm(sleeve, 1.35));
   if (!L.bare && !L.heavy) { const cuff = lerp(fe, fh, 0.78); seg(g, cuff, lerp(fe, fh, 0.95), 3.9, 3.7, L.robe ? trim : glove); }
   if (L.robe && !L.bare) poly(g, [add(fe, v(p.ff + 1.57, 4.8)), add(fe, v(p.ff - 1.57, 4.8)), add(fh, v(p.ff - 1.8, 8)), add(fh, v(p.ff + 1.8, 8))], cloth, undefined, 1);
   pauldron(g, L, sho, lean, trim);
@@ -204,7 +208,7 @@ function person(g, L, p, hip, onFoot) {
 function leg(g, hip, k, a, pants, boot, L, far) {
   // trousers to the knee, a tall boot below with a folded cuff, a shaped foot
   const cuffT = lerp(k, a, 0.12), up2 = lerp(k, a, -0.05);
-  limb(g, hip, k, a, 6.2, 5.2, 4.2, pants, boot, far ? null : warm(pants, 1.4));
+  limb(g, hip, k, a, 7, 4.8, 3.8, pants, boot, far ? null : warm(pants, 1.4));
   seg(g, up2, cuffT, 5.6, 5.4, far ? cool(boot, 0.85, 0.1) : warm(boot, 1.15));
   const foot = [[a[0] - 4.5, a[1] - 4], [a[0] + 3, a[1] - 4.5], [a[0] + 10, a[1] - 0.5], [a[0] + 11, a[1] + 3], [a[0] - 4.5, a[1] + 3]];
   celPoly(g, foot, boot, 1.6); g.fillStyle = '#2a1a16'; g.fillRect(a[0] - 4.5, a[1] + 1.8, 15.5, 1.4);
@@ -271,7 +275,7 @@ function headBack(g, L, h, lean, wind) {
 }
 function headOf(g, L, h, lean) {
   const skin = L.skin, hc = L.hc, P = L.P || {}, pose = L.pose, sl = cool(skin, 0.42, 0.3), sk2 = cool(skin, 0.8, 0.22);
-  g.save(); g.translate(h[0], h[1]); g.rotate(lean * 0.4); g.scale(0.94, 0.94);
+  g.save(); g.translate(h[0], h[1]); g.rotate(lean * 0.3); g.scale(1.06, 1.06);
   // ---- the neck, in the shade of the jaw
   celPoly(g, [[-4.5, 5], [3, 8], [2.4, 16], [-5.4, 15]], sk2, 1.4, cool(skin, 0.68, 0.26), sl, 1);
   // ---- the face, three-quarters toward the foe as the old battle sprites drew it: the far cheek makes the front
@@ -456,7 +460,7 @@ function weapon(g, L, p, hand, layer) {
 }
 // ---------------------------------------------------------------- mounts
 function mount(g, L, p, layer) {
-  const m = L.mount, run = ['strike', 'run', 'follow'].includes(L.pose) ? 1 : 0, back = L.pose === 'hit' || L.pose === 'dodge' ? 1 : 0, dx = (p.dx || 0) * 0.6;
+  const m = L.mount, run = ['strike', 'run', 'run2', 'follow'].includes(L.pose) ? 1 : 0, back = L.pose === 'hit' || L.pose === 'dodge' ? 1 : 0, dx = (p.dx || 0) * 0.6;
   if (m === 'horse') {
     const col = L.look === 'darkknight' ? '#2a2428' : L.look === 'valkyrie' || L.look === 'inquisitor' ? '#ece8e0' : L.look === 'gk' ? '#5a4a3a' : '#8a5a34', dk = sh(col, 0.7), lt = sh(col, 1.3), mane = L.look === 'valkyrie' ? '#e8dcc0' : sh(col, 0.4);
     const bx = dx - 4, by = -60 - run * 4 + back * 2, tilt = run ? -0.12 : back ? 0.1 : 0;

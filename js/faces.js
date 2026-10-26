@@ -11,7 +11,7 @@ const EC = ['#4a6a9a', '#5a4a3a', '#3a7a5a', '#6a4a2a', '#5a5a7a', '#7a3a2a'];
 const KIT = {
   sword: { out: 'merc', hair: ['messy', 'short', 'spiky'] }, myrm: { out: 'xuan', hair: ['tied', 'bob', 'short'], f: 0.4 }, merc: { out: 'merc', hair: ['short', 'scruffy', 'tailm'], rough: 1 },
   hero: { out: 'merc', hair: ['short', 'messy', 'long'] }, sm: { out: 'xuan', hair: ['tied', 'long', 'tailm'], f: 0.3 }, assassin: { out: 'assassin', hair: ['hood'], f: 0.3 },
-  fighter: { out: 'bare', hair: ['wild', 'buzz', 'bandana'], rough: 2 }, brigand: { out: 'bare', hair: ['wild', 'bald', 'bandana', 'buzz'], rough: 3 }, berserker: { out: 'fur', hair: ['wild', 'viking'], rough: 3 },
+  fighter: { out: 'bare', hair: ['wild', 'buzz', 'bandana'], rough: 2 }, brigand: { out: 'bare', hair: ['wild', 'bandana', 'spiky', 'scruffy'], rough: 3 }, berserker: { out: 'fur', hair: ['wild', 'viking'], rough: 3 },
   pirate: { out: 'outlaw', hair: ['bandana', 'scruffy'], rough: 3 }, warrior: { out: 'fur', hair: ['short', 'viking', 'buzz'], rough: 2 },
   soldier: { out: 'armor', hair: ['helm'] }, halberd: { out: 'armor', hair: ['helm'] }, knight: { out: 'armor', hair: ['helm'] }, general: { out: 'armor', hair: ['helm', 'short'], rough: 1 },
   cav: { out: 'armorlite', hair: ['short', 'messy', 'slick'] }, paladin: { out: 'armorlite', hair: ['short', 'flow'], f: 0.3 }, gk: { out: 'armor', hair: ['helm'] }, ranger: { out: 'hunter', hair: ['short', 'pony'], f: 0.4 },

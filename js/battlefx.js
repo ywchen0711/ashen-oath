@@ -15,8 +15,8 @@ const SOFT = new Map();
 function softBackdrop(scene) {
   if (SOFT.has(scene)) return SOFT.get(scene);
   const bd = backdrop(scene), c = document.createElement('canvas'); c.width = 920; c.height = 518; const g = c.getContext('2d');
-  g.filter = 'blur(1.6px) saturate(1.3) brightness(1.06) contrast(1.04)'; g.drawImage(bd, -6, -6, 932, 530); g.filter = 'none';
-  const haze = g.createLinearGradient(0, 0, 0, 518); haze.addColorStop(0, 'rgba(255,236,210,0.10)'); haze.addColorStop(0.55, 'rgba(255,255,255,0)'); haze.addColorStop(1, 'rgba(30,20,60,0.32)'); g.fillStyle = haze; g.fillRect(0, 0, 920, 518);
+  g.filter = 'blur(0.7px) saturate(1.22) brightness(1.02) contrast(1.08)'; g.drawImage(bd, -6, -6, 932, 530); g.filter = 'none';
+  const haze = g.createLinearGradient(0, 0, 0, 518); haze.addColorStop(0, 'rgba(255,236,210,0.04)'); haze.addColorStop(0.55, 'rgba(255,255,255,0)'); haze.addColorStop(1, 'rgba(30,20,60,0.22)'); g.fillStyle = haze; g.fillRect(0, 0, 920, 518);
   SOFT.set(scene, c); return c;
 }
 // a platform of ground for each side: a lit top with grass or stones, a rim of light, the cut earth below
@@ -82,7 +82,7 @@ export class BattleFX {
     const fig = { [att.uid]: { pose: 'idle', dx: 0, dy: 0, alpha: 1, flash: 0, trail: [], ph: 0 }, [def.uid]: { pose: 'idle', dx: 0, dy: 0, alpha: 1, flash: 0, trail: [], ph: 2 } };
     let dust = [], motes = [], smears = [], cutin = null, zoom = 1, camX = 0;
     // the frames: every pose and the in-betweens of each move, drawn before the fight starts so nothing stutters
-    for (const u of [att, def]) for (const ps of ['idle', 'wind', 'run', 'strike', 'follow', 'land', 'hit', 'dodge', 'cast', 'shoot', 'idle>wind@0.5', 'wind>strike@0.33', 'wind>strike@0.66', 'strike>follow@0.5', 'idle>cast@0.5', 'hit>idle@0.5']) fighter(u, ps);
+    for (const u of [att, def]) for (const ps of ['idle', 'wind', 'run', 'run2', 'strike', 'follow', 'land', 'hit', 'dodge', 'cast', 'shoot', 'idle>wind@0.5', 'run>wind@0.5', 'wind>strike@0.25', 'wind>strike@0.5', 'wind>strike@0.75', 'strike>follow@0.5', 'follow>idle@0.5', 'land>idle@0.5', 'idle>cast@0.5', 'hit>idle@0.5', 'idle>shoot@0.5']) fighter(u, ps);
     let popups = [], flash = 0, shakeT = 0, proj = null, banner = '', sparks = [], critFx = 0, critSeed = 0;
     const range = Math.abs(att.x - def.x) + Math.abs(att.y - def.y);
     const draw = () => {
@@ -92,16 +92,17 @@ export class BattleFX {
       g.save(); g.beginPath(); g.rect(-460, -230, 920, 410); g.clip(); g.drawImage(softBackdrop(scene), -460, -300, 920, 518); const dim = g.createLinearGradient(0, -230, 0, 180); dim.addColorStop(0, 'rgba(0,0,0,0)'); dim.addColorStop(0.75, 'rgba(10,0,30,0.08)'); dim.addColorStop(1, 'rgba(10,0,30,0.4)'); g.fillStyle = dim; g.fillRect(-460, -230, 920, 410);
       if (critFx > 0) { g.save(); g.globalAlpha = Math.min(1, critFx * 1.4); const cg = g.createRadialGradient(0, 20, 30, 0, 20, 520); cg.addColorStop(0, 'rgba(255,240,200,0.0)'); cg.addColorStop(1, 'rgba(120,20,60,0.55)'); g.fillStyle = cg; g.fillRect(-460, -230, 920, 410); g.strokeStyle = 'rgba(255,255,255,0.85)'; for (let k = 0; k < 46; k++) { const a = k / 46 * Math.PI * 2 + critSeed, r0 = 180 + ((k * 53) % 90); g.lineWidth = 1 + (k % 3); g.beginPath(); g.moveTo(Math.cos(a) * r0, 20 + Math.sin(a) * r0 * 0.7); g.lineTo(Math.cos(a) * 700, 20 + Math.sin(a) * 490); g.stroke(); } g.restore(); }
       // two platforms of ground, as the old battle screens had: a lit top with some texture, a darker front
-      for (const sx of [-1, 1]) g.drawImage(platform(floorC, scene), sx * 175 - 180, 86, 360, 100);
+      { const gg = g.createLinearGradient(0, 70, 0, 180); gg.addColorStop(0, 'rgba(0,0,0,0)'); gg.addColorStop(0.35, shadeC(floorC, 0.62).replace('rgb', 'rgba').replace(')', ',0.55)')); gg.addColorStop(1, shadeC(floorC, 0.35).replace('rgb', 'rgba').replace(')', ',0.9)')); g.fillStyle = gg; g.fillRect(-460, 70, 920, 110); }
+      for (const sx of [-1, 1]) g.drawImage(platform(floorC, scene), sx * 185 - 200, 88, 400, 110);
       g.restore(); g.strokeStyle = '#3a2a10'; g.lineWidth = 7; g.strokeRect(-460, -230, 920, 410); g.strokeStyle = '#e8c870'; g.lineWidth = 3; g.strokeRect(-460, -230, 920, 410); g.strokeStyle = 'rgba(255,240,200,0.6)'; g.lineWidth = 1; g.strokeRect(-455, -225, 910, 400);
       g.imageSmoothingEnabled = true;
       const now = performance.now() / 1000;
       for (const d of dust) { const k = d.t / d.life; g.fillStyle = `rgba(230,220,200,${0.45 * (1 - k)})`; g.beginPath(); g.ellipse(d.x + d.vx * d.t, d.y - d.t * 14, d.r * (0.6 + k), d.r * 0.55 * (0.6 + k), 0, 0, 7); g.fill(); }
       for (const u of [left, right]) { const F2 = fig[u.uid], sd = u === right ? 1 : -1; if (F2.alpha <= 0) continue; const img = fighter(u, F2.pose);
-        const at = (dx, dy, a, sc = 1) => { g.save(); g.globalAlpha = a; g.translate(sd * 175 - sd * dx, 132 + dy); g.scale(-sd * 0.86, 0.86 * sc); g.drawImage(img, -260, -460); g.restore(); };
+        const at = (dx, dy, a, sc = 1) => { g.save(); g.globalAlpha = a; g.translate(sd * 185 - sd * dx * 1.06, 138 + dy); g.scale(-sd * 1, 1 * sc); g.drawImage(img, -260, -460); g.restore(); };
         F2.trail.forEach((t, k) => { g.save(); g.filter = 'saturate(0.4) brightness(1.4)'; at(t[0], t[1], 0.08 + k * 0.07); g.restore(); });
         const breathe = F2.pose === 'idle' ? 1 + Math.sin(now * 2.6 + F2.ph) * 0.012 : 1;
-        g.save(); g.globalAlpha = F2.alpha; g.translate(sd * 175 - sd * F2.dx, 132 + F2.dy); g.scale(-sd * 0.86, 0.86 * breathe); g.drawImage(img, -260, -460 / breathe * breathe); if (F2.flash > 0) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = F2.flash * 0.85; g.drawImage(img, -260, -460); } g.restore(); }
+        g.save(); g.globalAlpha = F2.alpha; g.translate(sd * 185 - sd * F2.dx * 1.06, 138 + F2.dy); g.scale(-sd * 1, 1 * breathe); g.drawImage(img, -260, -460 / breathe * breathe); if (F2.flash > 0) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = F2.flash * 0.85; g.drawImage(img, -260, -460); } g.restore(); }
       // the light of each swing, sweeping round in front of the one who swings
       for (const sm of smears) { const k = sm.t / 0.22, f = sm.f; g.save(); g.translate(sm.x, sm.y); g.scale(f, 1); g.globalCompositeOperation = 'lighter'; const a0 = -2.1, a1 = a0 + (0.4 + Math.min(1, k * 3) * 2.6);
         const gr = g.createLinearGradient(-90, -90, 90, 90); gr.addColorStop(0, `rgba(${sm.c},0)`); gr.addColorStop(1, `rgba(${sm.c},${0.75 * (1 - k)})`); g.strokeStyle = gr; g.lineWidth = 26 * (1 - k * 0.6); g.beginPath(); g.arc(0, 0, 78, a0, a1); g.stroke();
@@ -156,19 +157,20 @@ export class BattleFX {
     for (const s of res.strikes) {
       const u = s.side === 'A' ? att : def, o = u === att ? def : att, F2 = fig[u.uid], FO = fig[o.uid], w = ITEMS[(u === att ? res.wA : res.wB) || ''] || null, sdO = o === right ? 1 : -1;
       const ranged = w && (w.type === 'bow' || w.magic) && (range > 1 || w.type === 'bow');
-      const sdU = u === right ? 1 : -1, ease = (k) => 1 - Math.pow(1 - k, 3), puff = (x, n = 5) => { for (let q = 0; q < n; q++) dust.push({ x: x + (Math.random() - 0.5) * 30, y: 134, vx: (Math.random() - 0.5) * 60, r: 8 + Math.random() * 10, t: 0, life: 0.4 + Math.random() * 0.3 }); };
+      const dist = 196, sdU = u === right ? 1 : -1, ease = (k) => 1 - Math.pow(1 - k, 3), puff = (x, n = 5) => { for (let q = 0; q < n; q++) dust.push({ x: x + (Math.random() - 0.5) * 30, y: 134, vx: (Math.random() - 0.5) * 60, r: 8 + Math.random() * 10, t: 0, life: 0.4 + Math.random() * 0.3 }); };
       const blend = async (F, a, b, ms, step) => { const n = a === 'wind' && b === 'strike' ? [0.33, 0.66] : [0.5]; for (const t of n) { F.pose = `${a}>${b}@${t}`; await wait(ms / (n.length + 1), step && ((k) => step((n.indexOf(t) + k) / (n.length + 1)))); } F.pose = b; await wait(ms / (n.length + 1), step && ((k) => step((n.length + k) / (n.length + 1)))); };
       if (s.crit) { // the cut-in: the face of the one striking, sliding across a band of light
         const face = faceOf(u); cutin = { t: 0, life: 0.95, sd: sdU, img: portrait(face, '決', 384, sdU > 0), c: u.side === 'player' ? ['#2a4ab8', '#7a3ab8'] : ['#b82a3a', '#5a1a5a'] }; opts.sound?.('crit');
         await blend(F2, 'idle', 'wind', 200); await wait(760); flash = 0.7; critFx = 1; critSeed = Math.random() * 6; banner = '必殺！'; }
       if (!ranged) {
         // wind up, dash in leaving afterimages and dust, swing through
-        if (!s.crit) await blend(F2, 'idle', 'wind', 170, (k) => { F2.dx = -k * 16; });
-        F2.ghost = true; F2.pose = 'run'; puff(sdU * 175, 4);
-        if (s.crit) { camX = sdU * 60; await wait(160, (k) => { F2.dx = -16 + ease(k) * 226; F2.dy = -Math.sin(k * Math.PI) * 8; zoom = 1 + ease(k) * 0.14; }); }
-        else await wait(150, (k) => { F2.dx = -16 + ease(k) * 226; F2.dy = -Math.sin(k * Math.PI) * 8; });
-        F2.dy = 0; await blend(F2, 'wind', 'strike', 90);
-        smears.push({ x: sdU * 175 - sdU * F2.dx - sdU * 30, y: -10, f: -sdU, t: 0, c: s.crit ? '255,210,110' : '190,220,255' });
+        // run in: a stride cycle, quick off the mark and easing in; then the weapon goes up and comes down through them
+        const inOut = (k) => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2), runMs = s.crit ? 300 : 340;
+        F2.pose = 'run'; puff(sdU * 175, 3); if (s.crit) camX = sdU * 60;
+        await wait(runMs, (k) => { const e = inOut(k); F2.dx = e * dist; F2.pose = Math.floor(k * 6) % 2 ? 'run2' : 'run'; F2.dy = -Math.abs(Math.sin(k * Math.PI * 3)) * 4; if (s.crit) zoom = 1 + e * 0.12; });
+        F2.dy = 0; F2.pose = 'run>wind@0.5'; await wait(50); F2.pose = 'wind'; await wait(s.crit ? 120 : 90, (k) => { F2.dx = dist + k * 4; });
+        F2.ghost = true; for (const t of [0.25, 0.5, 0.75]) { F2.pose = `wind>strike@${t}`; await wait(22); } F2.pose = 'strike';
+        smears.push({ x: sdU * 175 - sdU * F2.dx - sdU * 22, y: -20, f: -sdU, t: 0, c: s.crit ? '255,210,110' : '190,220,255' });
       } else {
         await blend(F2, 'idle', w.type === 'bow' ? 'shoot' : 'cast', 220);
         const x0 = (u === right ? 1 : -1) * 120, x1 = sdO * 160; proj = { x: x0, y: 30, x0, x1, k: 0, kind: w.type === 'bow' ? 'arrow' : w.type === 'dark' ? 'dark' : w.type === 'light' ? 'light' : w.name === '雷擊' || w.name === '雷霆' ? 'thunder' : w.eff && w.eff.includes('fly') ? 'wind' : 'fire', trail: [] };
@@ -180,12 +182,15 @@ export class BattleFX {
         hp[o.uid] = Math.max(0, hp[o.uid] - s.dmg); FO.flash = 1; FO.pose = 'hit'; sparks.push({ x: sdO * 165, y: 10, t: 0, crit: s.crit, r: Math.random() * 3 }); if (s.crit) critFx = Math.max(critFx, 0.8);
         shakeT = s.crit ? 1.2 : 0.6; popups.push({ text: s.dmg ? String(s.dmg) : '無效', x: sdO * 170, y: -40, col: s.crit ? '#ffd040' : '#ffffff', big: s.crit, t: 0 }); if (s.lethal) popups.push({ text: '致命', x: sdO * 170, y: -110, col: '#ff6a6a', t: 0 }); if (s.miracle) popups.push({ text: '奇蹟', x: sdO * 170, y: -110, col: '#a0e8ff', t: 0 }); if (!s.crit) opts.sound?.('hit');
         // the hit-stop: the world holds still for a beat, then the blow knocks them back
-        F2.ghost = false; await wait(s.crit ? 150 : 85);
-        await wait(130, (k) => { FO.dx = -Math.sin(k * Math.PI * 0.5) * (s.crit ? 46 : 28); FO.dy = -Math.sin(k * Math.PI) * 6; });
+        await wait(s.crit ? 120 : 70);
+        await wait(160, (k) => { FO.dx = -(1 - Math.pow(1 - k, 3)) * (s.crit ? 34 : 18); FO.dy = -Math.sin(k * Math.PI) * 3; });
         puff(sdO * 175 + sdO * FO.dx * -1, 3);
       } else { FO.pose = 'dodge'; FO.ghost = true; popups.push({ text: 'MISS', x: sdO * 170, y: -40, col: '#a8c8ff', t: 0 }); opts.sound?.('miss'); await wait(200, (k) => { FO.dx = -Math.sin(k * Math.PI) * 60; FO.dy = -Math.sin(k * Math.PI) * 14; }); FO.ghost = false; FO.dy = 0; }
       // follow through, then a hop back to the start, landing on bent knees
-      if (!ranged) { await blend(F2, 'strike', 'follow', 130); F2.ghost = true; F2.pose = 'dodge'; await wait(280, (k) => { F2.dx = 210 * (1 - ease(k)); F2.dy = -Math.sin(k * Math.PI) * 34; zoom = 1 + (zoom - 1) * (1 - k); }); F2.ghost = false; F2.dx = 0; F2.dy = 0; zoom = 1; camX = 0; F2.pose = 'land'; puff(sdU * 175, 4); await wait(90); }
+      // carry through, hold a breath, then spring back to the start and settle
+      if (!ranged) { F2.ghost = false; await blend(F2, 'strike', 'follow', 110); await wait(110); F2.pose = 'follow>idle@0.5'; await wait(50); F2.pose = 'land';
+        const z0 = zoom; await wait(330, (k) => { const e = 1 - Math.pow(1 - k, 2); F2.dx = (dist + 4) * (1 - e); F2.dy = -Math.sin(k * Math.PI) * 16; F2.pose = k < 0.75 ? 'dodge' : 'land'; zoom = 1 + (z0 - 1) * (1 - e); });
+        F2.dx = 0; F2.dy = 0; zoom = 1; camX = 0; F2.pose = 'land'; puff(sdU * 175, 3); await wait(80); F2.pose = 'land>idle@0.5'; await wait(60); }
       else await blend(F2, F2.pose, 'idle', 160);
       if (FO.pose === 'hit' && hp[o.uid] > 0) await blend(FO, 'hit', 'idle', 160, (k) => { FO.dx *= 1 - k; FO.dy = 0; });
       F2.pose = 'idle'; F2.dx = 0; FO.pose = 'idle'; FO.dx = 0; FO.dy = 0; banner = '';
