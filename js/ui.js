@@ -63,9 +63,9 @@ export class UI {
     return new Promise((res) => {
       const m = el('div', 'menu'); if (title) m.appendChild(el('div', 'mtitle', esc(title)));
       let k = 0; const btns = items.map((it, i) => { const b = el('button', 'mi' + (it.off ? ' off' : ''), esc(it.label) + (it.hint ? `<small>${esc(it.hint)}</small>` : '')); b.onclick = (e) => { e.stopPropagation(); if (!it.off) finish(it.id); }; b.onmouseenter = () => { k = i; mark(); }; m.appendChild(b); return b; });
-      const mark = () => btns.forEach((b, i) => b.classList.toggle('sel', i === k)); mark();
+      const mark = (scroll) => { btns.forEach((b, i) => b.classList.toggle('sel', i === k)); if (scroll && btns[k]) btns[k].scrollIntoView({ block: 'nearest' }); }; mark();
       const finish = (v) => { off(); m.remove(); res(v); };
-      const off = this.onKey((e) => { if (e.code === 'ArrowDown') { k = (k + 1) % btns.length; mark(); } if (e.code === 'ArrowUp') { k = (k + btns.length - 1) % btns.length; mark(); } if (['Enter', 'KeyZ', 'Space'].includes(e.code)) { e.preventDefault(); if (!items[k].off) finish(items[k].id); } if (['Escape', 'KeyX', 'Backspace'].includes(e.code)) finish(null); });
+      const off = this.onKey((e) => { if (e.code === 'ArrowDown') { k = (k + 1) % btns.length; mark(true); } if (e.code === 'ArrowUp') { k = (k + btns.length - 1) % btns.length; mark(true); } if (['Enter', 'KeyZ', 'Space'].includes(e.code)) { e.preventDefault(); if (!items[k].off) finish(items[k].id); } if (['Escape', 'KeyX', 'Backspace'].includes(e.code)) finish(null); });
       m.oncontextmenu = (e) => { e.preventDefault(); finish(null); };
       this.root.appendChild(m); const r = m.getBoundingClientRect(); m.style.left = Math.max(8, Math.min(innerWidth - r.width - 8, x)) + 'px'; m.style.top = Math.max(8, Math.min(innerHeight - r.height - 8, y)) + 'px';
       setTimeout(() => { const outside = (e) => { if (!m.contains(e.target)) { document.removeEventListener('pointerdown', outside, true); if (m.isConnected) { e.stopPropagation(); finish(null); } } }; document.addEventListener('pointerdown', outside, true); }, 30);

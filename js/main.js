@@ -1,7 +1,7 @@
 // Ashen Oath: the whole game. The title, saving, the chapters in order (card, story, preparation, battle, what
 // follows), the player's turn (pick a unit, move, act), the enemy's turn, support conversations, the ending.
 import { MapView } from './view.js';
-import { UI, el, esc, wait } from './ui.js';
+import { UI, el, esc, wait } from './ui.js?v=2';
 import { BattleFX } from './battlefx.js';
 import { Battle } from './engine.js';
 import { CHAPTERS } from './data/story.js';

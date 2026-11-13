@@ -16,9 +16,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .hpic canvas { display: block; border-radius: 4px; background: rgba(0, 0, 0, .25); }
 .hhp { font: 700 13px sans-serif; } .hhp i, .st i { display: block; height: 6px; background: #1a1a1a; border-radius: 3px; overflow: hidden; } .hhp em, .st em { display: block; height: 100%; background: #6ae86a; }
 #ter { position: fixed; right: 10px; bottom: 10px; padding: 6px 12px; display: flex; gap: 10px; align-items: baseline; pointer-events: none; font-size: 14px; } #ter b { font-size: 16px; }
-#goal { position: fixed; right: 10px; top: 10px; padding: 6px 14px; text-align: right; pointer-events: none; } #goal b { display: block; color: #ffe8a0; } #goal span { font-size: 13px; color: #c8d0f0; }
+#goal { position: fixed; right: 10px; top: 10px; padding: 6px 14px; text-align: right; pointer-events: none; max-width: calc(50vw - 20px); }
+/* the unit window (top left) and the goal (top right) share the top edge: each keeps to its half so they never overlap */
+#hov { max-width: calc(50vw - 20px); min-width: min(200px, calc(50vw - 20px)); } #hov > div:last-child { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 560px) { .hpic canvas { width: 44px; height: 44px; } #hov b { font-size: 15px; } #goal { padding: 5px 10px; } #goal b { font-size: 14px; line-height: 1.35; } #goal span { font-size: 12px; } } #goal b { display: block; color: #ffe8a0; } #goal span { font-size: 13px; color: #c8d0f0; }
 /* menus */
-.menu { position: fixed; min-width: 150px; padding: 6px; display: flex; flex-direction: column; gap: 2px; z-index: 20; }
+.menu { position: fixed; min-width: 150px; max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); overflow-y: auto; padding: 6px; display: flex; flex-direction: column; gap: 2px; z-index: 20; }
+.menu > * { flex-shrink: 0; }
 .mtitle { padding: 2px 8px 6px; color: #ffe8a0; font-weight: 700; border-bottom: 1px solid rgba(232, 208, 144, .4); margin-bottom: 4px; max-width: 360px; }
 .mi { text-align: left; background: none; border: 0; padding: 6px 12px; border-radius: 5px; font-size: 17px; display: flex; flex-direction: column; }
 .mi small { font-size: 12px; color: #b8c0e0; } .mi.sel, .mi:hover { background: linear-gradient(90deg, #e8c060, #a87a30); color: #1a1408; } .mi.sel small, .mi:hover small { color: #3a2a10; } .mi.off { opacity: .4; }
@@ -46,6 +50,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .ttext.narr { font-style: italic; color: #5a4a3a; text-align: center; }
 .tnext { position: absolute; right: 18px; bottom: 8px; color: #8a5a2a; animation: bob 1s infinite; } @keyframes bob { 50% { transform: translateY(4px); } }
 .tskip { position: absolute; right: 14px; top: 14px; padding: 4px 12px; background: rgba(0, 0, 0, .45); border: 1px solid rgba(255, 255, 255, .3); border-radius: 6px; font-size: 13px; color: #ddd; }
+/* while someone talks, the map's corner windows step aside (the skip button sits where the goal box is) */
+#ui:has(.talk) #goal, #ui:has(.talk) #hov, #ui:has(.talk) #ter { visibility: hidden; }
 /* the forecast */
 .fc { position: fixed; left: 50%; top: 14px; transform: translateX(-50%); padding: 8px 12px; z-index: 20; width: min(420px, 94vw); }
 .fct { text-align: center; color: #ffe8a0; font-weight: 700; } .fct small { color: #b8c0e0; font-weight: 500; }
