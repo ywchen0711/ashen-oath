@@ -5,13 +5,15 @@ import { faceOf } from './faces.js';
 import { backdrop } from './bgs.js';
 import { CAST } from './data/cast.js';
 import { CLASSES, STAT_NAME, STATS, SKILLS } from './data/classes.js';
-import { ITEMS, WEAPON_NAME } from './data/items.js';
+import { ITEMS, WEAPON_NAME, statusList } from './data/items.js';
 import { equipped, weapons, forecast, canUse, rangeOf, cls } from './rules.js';
 import { terrainAt } from './data/terrain.js';
 
 const $ = (id) => document.getElementById(id);
 const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 export const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+// a unit's statuses as small coloured tags (sleep, silence, barrier) with the turns left
+export const stTags = (u) => statusList(u).map(([t, c]) => `<span class="stg" style="color:${c};border-color:${c}">${esc(t)}</span>`).join('');
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export class UI {
@@ -74,7 +76,7 @@ export class UI {
     return new Promise((res) => {
       let k = 0; const box = el('div', 'fc'); this.root.appendChild(box);
       const draw = () => { const w = list[k], f = forecast(u, w, t, B.ctx()), A = f.A, Bn = f.B, dw = equipped(t); const tri = A.tri > 0 ? '<b class="up">▲</b>' : A.tri < 0 ? '<b class="dn">▼</b>' : '';
-        const col = (who, N, wp, hp) => `<div class="fcs ${who.side}"><div class="fn">${esc(who.name)}</div><div class="fw">${wp ? esc(ITEMS[wp.id].name) : '—'}${who === u ? tri : ''}</div><div class="fr"><span>HP</span><b>${hp}</b></div><div class="fr"><span>威力</span><b>${N ? N.dmg + (N.doubles ? ' ×2' : '') + (N.eff ? ' 特效' : '') : '—'}</b></div><div class="fr"><span>命中</span><b>${N ? N.hit : '—'}</b></div><div class="fr"><span>必殺</span><b>${N ? N.crit : '—'}</b></div></div>`;
+        const col = (who, N, wp, hp) => `<div class="fcs ${who.side}"><div class="fn">${esc(who.name)}${stTags(who)}</div><div class="fw">${wp ? esc(ITEMS[wp.id].name) : '—'}${who === u ? tri : ''}</div><div class="fr"><span>HP</span><b>${hp}</b></div><div class="fr"><span>威力</span><b>${N ? N.dmg + (N.doubles ? ' ×2' : '') + (N.eff ? ' 特效' : '') : '—'}</b></div><div class="fr"><span>命中</span><b>${N ? N.hit : '—'}</b></div><div class="fr"><span>必殺</span><b>${N ? N.crit : '—'}</b></div></div>`;
         box.innerHTML = `<div class="fct">戰鬥預測 ${list.length > 1 ? `<small>← → 換武器 (${k + 1}/${list.length})</small>` : ''}</div><div class="fcb">${col(u, A, w, u.hp)}${col(t, Bn, dw, t.hp)}</div><div class="fcbtn"><button class="ok">攻擊</button><button class="no">取消</button></div>`;
         box.querySelector('.ok').onclick = () => finish(list[k]); box.querySelector('.no').onclick = () => finish(null); };
       const finish = (v) => { off(); box.remove(); res(v); };
@@ -90,7 +92,7 @@ export class UI {
     const items = u.items.map((i) => { const d = ITEMS[i.id], usable = d.kind === 'item' || canUse(u, i.id); return `<div class="it ${usable ? '' : 'off'} ${equipped(u) === i ? 'eq' : ''}"><span>${d.kind === 'weapon' ? WEAPON_NAME[d.type] : d.kind === 'staff' ? '杖' : '物'}</span>${esc(d.name)}<b>${i.uses}/${d.uses}</b></div>`; }).join('') || '<div class="it off">—</div>';
     const skills = [...k.skills, ...(u.personal && !k.skills.includes(u.personal) ? [u.personal] : [])].map((s) => SKILLS[s] ? `<div class="sk"><b>${SKILLS[s].name}</b> ${esc(SKILLS[s].desc)}</div>` : '').join('');
     const w = equipped(u), ter = u.x != null && B ? terrainAt(B.F.tile(u.x, u.y)) : null;
-    panel.innerHTML = `<button class="sx">✕</button><div class="sh"><div class="sp"></div><div><div class="snm">${esc(u.name)}</div><div class="scl">${esc(k.name)} · Lv ${u.lv} <small>EXP ${u.exp}</small></div><div class="shp">HP ${u.hp} / ${u.stats.hp}</div><div class="smv">移動 ${u.stats.mov} · 武器 ${k.weapons.map((x) => WEAPON_NAME[x]).join('、') || '—'}</div>${c && c.bio ? `<p class="bio">${esc(c.bio)}</p>` : ''}</div></div><div class="sgrid"><div>${bars}</div><div>${items}${w ? `<div class="wpn">攻擊 ${(ITEMS[w.id].magic ? u.stats.mag : u.stats.str) + ITEMS[w.id].mt} · 命中 ${ITEMS[w.id].hit + u.stats.skl * 2 + Math.floor(u.stats.lck / 2)} · 必殺 ${ITEMS[w.id].crit + Math.floor(u.stats.skl / 2)} · 射程 ${rangeOf(u, w).join('–')}</div>` : ''}${skills}${ter ? `<div class="sk"><b>${ter.name}</b> 守備 +${ter.def}　迴避 +${ter.avo}${ter.heal ? `　回復 ${ter.heal}%` : ''}</div>` : ''}</div></div>`;
+    panel.innerHTML = `<button class="sx">✕</button><div class="sh"><div class="sp"></div><div><div class="snm">${esc(u.name)}</div><div class="scl">${esc(k.name)} · Lv ${u.lv} <small>EXP ${u.exp}</small></div><div class="shp">HP ${u.hp} / ${u.stats.hp}${stTags(u)}</div><div class="smv">移動 ${u.stats.mov} · 武器 ${k.weapons.map((x) => WEAPON_NAME[x]).join('、') || '—'}</div>${c && c.bio ? `<p class="bio">${esc(c.bio)}</p>` : ''}</div></div><div class="sgrid"><div>${bars}</div><div>${items}${w ? `<div class="wpn">攻擊 ${(ITEMS[w.id].magic ? u.stats.mag : u.stats.str) + ITEMS[w.id].mt} · 命中 ${ITEMS[w.id].hit + u.stats.skl * 2 + Math.floor(u.stats.lck / 2)} · 必殺 ${ITEMS[w.id].crit + Math.floor(u.stats.skl / 2)} · 射程 ${rangeOf(u, w).join('–')}</div>` : ''}${skills}${ter ? `<div class="sk"><b>${ter.name}</b> 守備 +${ter.def}　迴避 +${ter.avo}${ter.heal ? `　回復 ${ter.heal}%` : ''}</div>` : ''}</div></div>`;
     if (port) panel.querySelector('.sp').appendChild(port);
     this.root.appendChild(panel);
     return new Promise((res) => { const close = () => { off(); panel.remove(); res(); }; panel.querySelector('.sx').onclick = close; panel.onclick = (e) => { if (e.target === panel) close(); }; const off = this.onKey((e) => { if (['Escape', 'KeyX', 'KeyR', 'Enter', 'KeyZ'].includes(e.code)) close(); }); });
@@ -108,7 +110,7 @@ export class UI {
       const count = (s) => B.alive.filter((u) => !u.rescuedBy && (s === 'all' || u.side === s || (s === 'ally' && u.side === 'other')) && (u.side !== 'enemy' || visible(u))).length;
       panel.innerHTML = `<div class="rwin"><div class="rhead"><b>全員資訊</b><span class="rtabs">${SIDES.map(([s, n]) => `<button class="rtab ${s === side ? 'on' : ''} ${s}" data-s="${s}">${n} <small>${count(s)}</small></button>`).join('')}</span><button class="sx">✕</button></div>
         <div class="rtable"><table><thead><tr><th></th>${COLS.map(([k, n]) => `<th data-k="${k}" class="${key === k ? 'on' : ''}">${n}${key === k ? (dir > 0 ? '▲' : '▼') : ''}</th>`).join('')}<th>武器</th></tr></thead><tbody>
-        ${list.map((u) => { const w = equipped(u), k = cls(u), hpk = u.hp / u.stats.hp; return `<tr data-u="${u.uid}" class="${u.side} ${u.acted && u.side === 'player' && B.phase === 'player' ? 'done' : ''}"><td class="rf"><i></i></td><td class="rn"><b>${esc(u.name)}${u.boss ? ' <em>將</em>' : ''}${u.lord ? ' <em>主</em>' : ''}</b><small>${esc(k.name)}</small></td><td>${u.lv}</td><td class="rh"><span>${u.hp}/${u.stats.hp}</span><i><em style="width:${hpk * 100}%;background:${hpk > 0.5 ? '#5ad85a' : hpk > 0.25 ? '#e8c840' : '#e84a3a'}"></em></i></td>${['str', 'mag', 'skl', 'spd', 'lck', 'def', 'res', 'mov'].map((s) => `<td>${u.stats[s]}</td>`).join('')}<td class="rw">${w ? esc(ITEMS[w.id].name) : '—'}</td></tr>`; }).join('') || `<tr><td colspan="13" class="rnone">沒有人</td></tr>`}
+        ${list.map((u) => { const w = equipped(u), k = cls(u), hpk = u.hp / u.stats.hp; return `<tr data-u="${u.uid}" class="${u.side} ${u.acted && u.side === 'player' && B.phase === 'player' ? 'done' : ''}"><td class="rf"><i></i></td><td class="rn"><b>${esc(u.name)}${u.boss ? ' <em>將</em>' : ''}${u.lord ? ' <em>主</em>' : ''}${stTags(u)}</b><small>${esc(k.name)}</small></td><td>${u.lv}</td><td class="rh"><span>${u.hp}/${u.stats.hp}</span><i><em style="width:${hpk * 100}%;background:${hpk > 0.5 ? '#5ad85a' : hpk > 0.25 ? '#e8c840' : '#e84a3a'}"></em></i></td>${['str', 'mag', 'skl', 'spd', 'lck', 'def', 'res', 'mov'].map((s) => `<td>${u.stats[s]}</td>`).join('')}<td class="rw">${w ? esc(ITEMS[w.id].name) : '—'}</td></tr>`; }).join('') || `<tr><td colspan="13" class="rnone">沒有人</td></tr>`}
         </tbody></table></div><div class="rfoot">點一下看詳細資料 · 點欄位排序 · 快捷鍵 L</div></div>`;
       panel.querySelectorAll('tr[data-u]').forEach((tr) => { const u = B.units.find((x) => x.uid === +tr.dataset.u); tr.querySelector('.rf i').appendChild(portrait(faceOf(u), '平', 64, u.side !== 'player')); tr.onclick = () => choose(u); });
       panel.querySelectorAll('[data-s]').forEach((b) => b.onclick = () => { side = b.dataset.s; draw(); });
@@ -126,7 +128,7 @@ export class UI {
   hover(u, ter, B) {
     let h = $('hov'); if (!h) { h = el('div', ''); h.id = 'hov'; this.root.appendChild(h); }
     let t = $('ter'); if (!t) { t = el('div', ''); t.id = 'ter'; this.root.appendChild(t); }
-    if (u) { const c = CAST[u.id], w = equipped(u); h.className = 'hov ' + u.side; h.innerHTML = `<div class="hpic"></div><div><b>${esc(u.name)}</b><small>${esc(CLASSES[u.cls].name)} Lv${u.lv}</small><div class="hhp">HP ${u.hp}/${u.stats.hp}<i><em style="width:${u.hp / u.stats.hp * 100}%"></em></i></div>${w ? `<small>${esc(ITEMS[w.id].name)}</small>` : ''}</div>`; h.querySelector('.hpic').appendChild(portrait(faceOf(u), '平', 64)); h.hidden = false; } else h.hidden = true;
+    if (u) { const c = CAST[u.id], w = equipped(u); h.className = 'hov ' + u.side; h.innerHTML = `<div class="hpic"></div><div><b>${esc(u.name)}${stTags(u)}</b><small>${esc(CLASSES[u.cls].name)} Lv${u.lv}</small><div class="hhp">HP ${u.hp}/${u.stats.hp}<i><em style="width:${u.hp / u.stats.hp * 100}%"></em></i></div>${w ? `<small>${esc(ITEMS[w.id].name)}</small>` : ''}</div>`; h.querySelector('.hpic').appendChild(portrait(faceOf(u), '平', 64)); h.hidden = false; } else h.hidden = true;
     if (ter) { t.innerHTML = `<b>${esc(ter.name)}</b><span>守 ${ter.def}</span><span>避 ${ter.avo}</span>${ter.heal ? `<span>回 ${ter.heal}%</span>` : ''}`; t.hidden = false; } else t.hidden = true;
   }
   goalBox(text, turn, extra) { let g = $('goal'); if (!g) { g = el('div', ''); g.id = 'goal'; this.root.appendChild(g); } g.innerHTML = `<b>${esc(text)}</b><span>第 ${turn} 回合${extra ? ' · ' + esc(extra) : ''}</span>`; }

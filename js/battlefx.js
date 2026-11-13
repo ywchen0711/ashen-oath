@@ -1,7 +1,7 @@
 // The battle scene: when two units fight, the map dims and they face each other side-on on a strip of their
 // ground — yours on the right. Each strike plays out: the lunge, the arrow, the spell; a flash and a shudder on a
 // hit, a hop back on a miss, a white burst and 必殺 for a critical; HP bars drain; the fallen fade away.
-import { ITEMS } from './data/items.js';
+import { ITEMS, statusList } from './data/items.js';
 import { terrainAt } from './data/terrain.js';
 import { fighter } from './fighters.js';
 import { backdrop } from './bgs.js';
@@ -128,6 +128,8 @@ export class BattleFX {
         g.save(); g.beginPath(); g.arc(px, py, 44, 0, 7); const fg = g.createRadialGradient(px, py - 10, 4, px, py, 46); fg.addColorStop(0, base[2]); fg.addColorStop(1, base[1]); g.fillStyle = fg; g.fill(); g.clip();
         { const ex = hp[u.uid] <= 0 ? '閉' : F2.pose === 'hit' ? '痛' : F2.pose === 'strike' || F2.pose === 'wind' || F2.pose === 'cast' || F2.pose === 'shoot' ? '決' : '平'; g.drawImage(portrait(face, ex, 192, sd > 0), px - 52, py - 52, 104, 104); }
         g.restore(); g.strokeStyle = '#3a2a10'; g.lineWidth = 5; g.beginPath(); g.arc(px, py, 44, 0, 7); g.stroke(); g.strokeStyle = '#e8c870'; g.lineWidth = 2; g.stroke();
+        // statuses (sleep, silence, barrier) as pills under the face
+        { const sl = statusList(u); g.font = 'bold 13px sans-serif'; g.textAlign = 'center'; const ws = sl.map(([t]) => g.measureText(t).width + 8), tw = ws.reduce((a, b) => a + b + 3, -3); let sx = px - tw / 2; sl.forEach(([t, c], i) => { g.fillStyle = 'rgba(10,5,20,0.85)'; g.fillRect(sx, py + 34, ws[i], 17); g.strokeStyle = c; g.lineWidth = 1; g.strokeRect(sx + 0.5, py + 34.5, ws[i] - 1, 16); g.fillStyle = c; g.fillText(t, sx + ws[i] / 2, py + 47); sx += ws[i] + 3; }); }
         // name and weapon
         g.textAlign = 'left'; g.font = 'bold 28px "Noto Serif TC", serif'; g.lineWidth = 4; g.strokeStyle = 'rgba(10,5,20,0.6)'; g.strokeText(u.name, x0 + 114, y0 + 36); g.fillStyle = '#ffffff'; g.fillText(u.name, x0 + 114, y0 + 36);
         const wid = u === att ? res.wA : res.wB, W = wid ? ITEMS[wid] : null; wIcon(g, W ? W.type : '', x0 + 124, y0 + 58); g.font = '19px "Noto Serif TC", serif'; g.fillStyle = '#f4ecd0'; g.fillText(W ? W.name : '—', x0 + 142, y0 + 65);

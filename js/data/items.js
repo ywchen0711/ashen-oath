@@ -90,6 +90,9 @@ export const ITEMS = {
   goldBag: IT('金袋', 1, 0, { use: 'gold', amt: 3000 }),
 };
 export const WEAPON_NAME = { sword: '劍', lance: '槍', axe: '斧', bow: '弓', anima: '理', light: '光', dark: '闇', staff: '杖' };
+// short status tags shown next to a unit's name/HP (with turns left)
+export const STATUS_TAG = { sleep: ['眠', '#9ab8ff', 'Zz'], silence: ['默', '#d090ff', '默'], barrier: ['魔盾', '#7ae0ff', '盾'] };  // [tag, colour, map mark]
+export const statusList = (u) => Object.entries(u.status || {}).filter(([k, v]) => STATUS_TAG[k] && v > 0).map(([k, v]) => [STATUS_TAG[k][0] + v, STATUS_TAG[k][1]]);
 export const TRIANGLE = { sword: 'axe', axe: 'lance', lance: 'sword', anima: 'light', light: 'dark', dark: 'anima' };
 // an item in someone's hands: which item, how many uses are left
 export const item = (id, uses) => ({ id, uses: uses ?? ITEMS[id].uses });

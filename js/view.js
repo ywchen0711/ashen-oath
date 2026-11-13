@@ -3,6 +3,7 @@
 // they wait, walking square to square, grey once they've acted), little HP bars and floating numbers.
 import { paintMap, spriteOf } from './tiles.js';
 import { CLASSES } from './data/classes.js';
+import { STATUS_TAG } from './data/items.js';
 import { CAST } from './data/cast.js';
 
 export class MapView {
@@ -55,6 +56,8 @@ export class MapView {
       if (u.boss) { g.fillStyle = '#e8c040'; g.font = `bold ${8 * this.Z}px serif`; g.fillText('♛', x * TS + 1, y * TS + 9 * this.Z); }
       if (u.rescuing) { g.fillStyle = '#5aa0ff'; g.fillRect(x * TS + TS - 10, y * TS + 2, 8, 8); }
       if (u.status && u.status.sleep) { g.fillStyle = '#c8d8ff'; g.font = `bold ${6 * this.Z}px sans-serif`; g.fillText('Zz', x * TS + TS - 6 * this.Z, y * TS + 6 * this.Z); }
+      // silence and barrier: a small mark down the right edge of the tile
+      if (u.status) { let k = 1; for (const s of ['silence', 'barrier']) if (u.status[s] > 0) { const yy = y * TS + (6 + k * 6) * this.Z; g.font = `bold ${5 * this.Z}px sans-serif`; g.lineWidth = 2; g.strokeStyle = '#101018'; g.strokeText(STATUS_TAG[s][2], x * TS + TS - 5 * this.Z, yy); g.fillStyle = STATUS_TAG[s][1]; g.fillText(STATUS_TAG[s][2], x * TS + TS - 5 * this.Z, yy); k++; } }
       if (u.talkMark) { g.fillStyle = '#ffe070'; g.font = `bold ${7 * this.Z}px sans-serif`; g.fillText('💬', x * TS + TS - 7 * this.Z, y * TS + 7 * this.Z); }
     }
     // the cursor: four corners that breathe
